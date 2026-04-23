@@ -230,7 +230,7 @@ const CONFIG = {
   // GOOGLE APPS SCRIPT — incolla qui il tuo URL dopo il deploy
   // Lascia stringa vuota ('') per disattivare il logging remoto
   // ─────────────────────────────────────────────────────────────────
-  script_url: 'https://script.google.com/macros/s/AKfycbxUqCI-mGEekrzn3SWuWyF1qeW9ZSe6W3qJ7Qx6L8cKQ_DFiOkkAT4KsVGxY2LIlk30SA/exec',               // ← INCOLLA QUI il tuo Apps Script URL
+  script_url: 'https://script.google.com/macros/s/AKfycbxnYFuFL5UEemazhk3tp6KTIC-WYDt-EUjNsEloxUNVMHx-suK0Ni4cbvazK03R7WgkQg/exec',               // ← INCOLLA QUI il tuo Apps Script URL
 };
 
 // ╔════════════════════════════════════════╗
@@ -931,23 +931,46 @@ function npDel() {
   renderNumpad();
 }
 
-function npConfirm() {
+async function npConfirm() {
   const emp = S.pendingEmp;
   if (!emp) return;
+  
   if (S.npInput === emp.matricola) {
     // SUCCESS
     clearTimeout(window._npTimer);
+    
+    // ─── NEW: FETCH DATA FROM GOOGLE SHEETS BEFORE LOGGING IN ───
+    if (CONFIG.script_url) {
+      toast(S.lang === 'it' ? 'Sincronizzazione profilo...' : 'Syncing profile...');
+      try {
+        const res = await fetch(`${CONFIG.script_url}?action=load&employeeId=${emp.id}`);
+        const data = await res.json();
+        if (data.status === 'ok' && data.profile) {
+          // Overwrite this device's local storage for this specific employee
+          // with the master data from Google Sheets
+          const all = load();
+          all[emp.id] = data.profile;
+          save(all);
+        }
+      } catch(e) {
+        console.error("Sync failed. Using offline local data.", e);
+      }
+    }
+    // ────────────────────────────────────────────────────────────
+
     S.employee = emp;
     S.pendingEmp = null;
     S.npInput = '';
     S.npAttempts = 0;
     S.npLockUntil = 0;
     S.course = null; S.lesson = null; S.inQuiz = false;
+    
     toast(t('np_ok') + ' ' + emp.name.split(' ')[0] + '!');
     render();
     logToSheet('LOGIN');
+    
   } else {
-    // WRONG
+    // WRONG PASSWORD
     S.npAttempts++;
     S.npInput = '';
     if (S.npAttempts >= 3) {
