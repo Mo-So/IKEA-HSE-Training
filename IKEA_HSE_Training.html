@@ -226,7 +226,11 @@ body {
 const CONFIG = {
   admin_password: 'hse2024',   // ← CAMBIA questa password!
   passing_score: 70,            // % minimo per superare il quiz
-  script_url: 'https://script.google.com/a/macros/ingka.ikea.com/s/AKfycbwOfR1dzX4qYKrCHIE7aEKlpxavfzVsBxrxcuth26WPCfjehXhXkxK7L73cCrEHS0UeHQ/exec',   // ← INCOLLA QUI il tuo Apps Script URL
+  // ─────────────────────────────────────────────────────────────────
+  // GOOGLE APPS SCRIPT — incolla qui il tuo URL dopo il deploy
+  // Lascia stringa vuota ('') per disattivare il logging remoto
+  // ─────────────────────────────────────────────────────────────────
+  script_url: 'https://script.google.com/a/macros/ingka.ikea.com/s/AKfycbwOfR1dzX4qYKrCHIE7aEKlpxavfzVsBxrxcuth26WPCfjehXhXkxK7L73cCrEHS0UeHQ/exec',               // ← INCOLLA QUI il tuo Apps Script URL
 };
 
 // ╔════════════════════════════════════════╗
@@ -235,15 +239,15 @@ const CONFIG = {
 // matricola = employee number on badge — workers type this to confirm identity
 const EMPLOYEES = [
   { id:'E01', name:'Marco Rossi',      role:'warehouse',  dept:'Magazzino Nord',     matricola:'10234' },
-  { id:'E02', name:'Anna Chen',         role:'warehouse',  dept:'Magazzino Nord',     matricola:'10234' },
-  { id:'E03', name:'Ion Mihail',        role:'warehouse',  dept:'Magazzino Sud',      matricola:'10234' },
-  { id:'E04', name:'Sofia Esposito',    role:'warehouse',  dept:'Magazzino Sud',      matricola:'10234' },
-  { id:'E05', name:'Radu Popescu',      role:'warehouse',  dept:'Reparto Arrivi',     matricola:'10234' },
-  { id:'E06', name:'Ahmed Benali',      role:'warehouse',  dept:'Reparto Spedizioni', matricola:'10234' },
-  { id:'E07', name:'Giulia Ferrari',    role:'staff',      dept:'Ufficio',            matricola:'10234' },
-  { id:'E08', name:'Viktor Novak',      role:'warehouse',  dept:'Magazzino Nord',     matricola:'10234' },
-  { id:'E09', name:'Fatima Al-Hassan',  role:'warehouse',  dept:'Reparto Arrivi',     matricola:'10234' },
-  { id:'E10', name:'Moso (HSE)',        role:'hse',        dept:'HSE / Sicurezza',    matricola:'10234' },
+  { id:'E02', name:'Anna Chen',         role:'warehouse',  dept:'Magazzino Nord',     matricola:'10891' },
+  { id:'E03', name:'Ion Mihail',        role:'warehouse',  dept:'Magazzino Sud',      matricola:'11042' },
+  { id:'E04', name:'Sofia Esposito',    role:'warehouse',  dept:'Magazzino Sud',      matricola:'11205' },
+  { id:'E05', name:'Radu Popescu',      role:'warehouse',  dept:'Reparto Arrivi',     matricola:'11388' },
+  { id:'E06', name:'Ahmed Benali',      role:'warehouse',  dept:'Reparto Spedizioni', matricola:'11567' },
+  { id:'E07', name:'Giulia Ferrari',    role:'staff',      dept:'Ufficio',            matricola:'12014' },
+  { id:'E08', name:'Viktor Novak',      role:'warehouse',  dept:'Magazzino Nord',     matricola:'12233' },
+  { id:'E09', name:'Fatima Al-Hassan',  role:'warehouse',  dept:'Reparto Arrivi',     matricola:'12456' },
+  { id:'E10', name:'Moso (HSE)',        role:'hse',        dept:'HSE / Sicurezza',    matricola:'12700' },
 ];
 
 // ╔════════════════════════════════════════╗
@@ -734,6 +738,33 @@ function toast(msg) {
   window._tt = setTimeout(() => el.classList.add('hidden'), 2600);
 }
 
+// ╔══════════════════════════════════════════╗
+// ║  GOOGLE SHEETS LOGGING                   ║
+// ╚══════════════════════════════════════════╝
+// Sends a silent background event to Google Apps Script → Google Sheet.
+// Uses fire-and-forget (no await) so it never blocks the UI.
+// If offline or URL not set, it fails silently — localStorage still works.
+function logToSheet(eventType, extra) {
+  if (!CONFIG.script_url) return;
+  const emp = S.employee;
+  if (!emp) return;
+  const data = {
+    eventType,
+    employeeId:   emp.id,
+    employeeName: emp.name,
+    dept:         emp.dept,
+    role:         emp.role,
+    courseId:     S.course ? S.course.id : '',
+    courseTitle:  S.course ? S.course.title.it : '',
+    lessonId:     S.lesson ? S.lesson.id : '',
+    lessonTitle:  S.lesson ? S.lesson.title.it : '',
+    lang:         S.lang,
+    ...extra
+  };
+  const url = CONFIG.script_url + '?data=' + encodeURIComponent(JSON.stringify(data));
+  fetch(url).catch(() => {}); // fire and forget — never throws
+}
+
 function toggleLang() {
   S.lang = S.lang === 'it' ? 'en' : 'it';
   document.getElementById('lang-btn').textContent = S.lang === 'it' ? 'EN' : 'IT';
@@ -914,6 +945,7 @@ function npConfirm() {
     S.course = null; S.lesson = null; S.inQuiz = false;
     toast(t('np_ok') + ' ' + emp.name.split(' ')[0] + '!');
     render();
+    logToSheet('LOGIN');
   } else {
     // WRONG
     S.npAttempts++;
@@ -1087,8 +1119,10 @@ function completeLesson(id) {
   const emp = S.employee; const c = S.course;
   const p = getCP(emp.id, c.id);
   const completed = new Set(p.lessonsCompleted || []);
+  const isNew = !completed.has(id);
   completed.add(id);
   setCP(emp.id, c.id, { lessonsCompleted: [...completed] });
+  if (isNew) logToSheet('LESSON_COMPLETE');
 
   if ([...completed].length >= c.lessons.length) {
     startQuiz();
@@ -1176,6 +1210,7 @@ function renderQuizResult() {
     completedAt: (passed && !p.passed) ? Date.now() : (p.completedAt || null),
     lastAttempt: Date.now(),
   });
+  logToSheet(passed ? 'QUIZ_PASS' : 'QUIZ_FAIL', { score, attempts });
 
   return `
   <div class="screen" style="text-align:center;">
