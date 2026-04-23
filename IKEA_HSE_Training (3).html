@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0058A3">
+<title>IKEA HSE Training</title>
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  IKEA HSE TRAINING APP — v1.0                               ║
+  ║  Autore: HSE Specialist, IKEA Piacenza                      ║
+  ║                                                              ║
+  ║  FASE 1 (attuale): i dati vengono salvati nel browser       ║
+  ║  del tablet condiviso (localStorage). Usa "Esporta CSV"     ║
+  ║  per portare i dati in Excel.                               ║
+  ║                                                              ║
+  ║  PER PERSONALIZZARE:                                         ║
+  ║  1. Modifica CONFIG.admin_password                           ║
+  ║  2. Aggiorna l'array EMPLOYEES con i tuoi co-worker          ║
+  ║  3. Aggiungi nuovi corsi nell'array COURSES                  ║
+  ╚══════════════════════════════════════════════════════════════╝
+-->
+<style>
+:root {
+  --blue: #0058A3;
+  --blue-dark: #004070;
+  --blue-light: #E8F2FC;
+  --yellow: #FFDA1A;
+  --green: #1A9E6E;
+  --green-light: #E0F5ED;
+  --red: #C0392B;
+  --red-light: #FDECEA;
+  --amber: #D97706;
+  --amber-light: #FEF3C7;
+  --gray: #6B7280;
+  --gray-light: #F3F4F6;
+  --border: #E5E7EB;
+  --text: #111827;
+  --text-muted: #6B7280;
+  --white: #FFFFFF;
+  --r: 12px;
+  --rs: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #E8F0F8;
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 16px;
+  line-height: 1.5;
+}
+#app { max-width: 500px; margin: 0 auto; min-height: 100vh; background: var(--white); display: flex; flex-direction: column; }
+
+/* HEADER */
+.hdr { background: var(--blue); color: white; padding: 14px 18px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; min-height: 54px; }
+.hdr-logo { font-size: 19px; font-weight: 800; color: var(--yellow); letter-spacing: -0.5px; flex-shrink: 0; }
+.hdr-title { font-size: 14px; font-weight: 500; opacity: 0.9; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hdr-btn { background: rgba(255,255,255,0.18); border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+.hdr-btn:active { opacity: 0.75; }
+
+/* CONTENT */
+.content { flex: 1; padding: 18px; overflow-y: auto; }
+
+/* CARDS */
+.card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 15px; margin-bottom: 10px; cursor: pointer; transition: transform 0.1s; }
+.card:active { transform: scale(0.985); }
+.card.nc { cursor: default; }
+.card.nc:active { transform: none; }
+
+/* PROGRESS */
+.pbar { height: 6px; background: var(--gray-light); border-radius: 99px; margin-top: 9px; overflow: hidden; }
+.pfill { height: 100%; border-radius: 99px; transition: width 0.4s; }
+
+/* BADGES */
+.badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 99px; }
+.b-req  { background: var(--red-light); color: var(--red); }
+.b-opt  { background: var(--green-light); color: var(--green); }
+.b-done { background: var(--green-light); color: var(--green); }
+.b-prog { background: var(--amber-light); color: var(--amber); }
+.b-new  { background: var(--blue-light); color: var(--blue); }
+
+/* BUTTONS */
+.btn { display: block; width: 100%; padding: 14px 18px; border-radius: var(--rs); border: none; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 10px; transition: opacity 0.15s, transform 0.1s; }
+.btn:active { transform: scale(0.98); opacity: 0.85; }
+.btn-primary { background: var(--blue); color: white; }
+.btn-yellow  { background: var(--yellow); color: #111; }
+.btn-outline { background: transparent; color: var(--blue); border: 1.5px solid var(--blue); }
+.btn-ghost   { background: transparent; color: var(--gray); border: 1px solid var(--border); }
+
+/* ICON CIRCLE */
+.ic { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+
+/* AVATAR */
+.av { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; background: var(--blue); color: white; }
+
+/* SECTION LABEL */
+.slabel { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; color: var(--text-muted); text-transform: uppercase; margin: 4px 0 10px; }
+
+/* GRID 2 */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* STAT BOX */
+.sbox { background: var(--gray-light); border-radius: var(--rs); padding: 13px; text-align: center; }
+.snum { font-size: 26px; font-weight: 700; }
+.slbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* EMPLOYEE BUTTON */
+.empbtn { display: flex; align-items: center; gap: 12px; background: var(--white); border: 1px solid var(--border); border-radius: var(--rs); padding: 13px 15px; width: 100%; cursor: pointer; font-size: 15px; text-align: left; margin-bottom: 8px; transition: background 0.12s, border-color 0.12s; }
+.empbtn:hover { background: var(--blue-light); border-color: var(--blue); }
+.empbtn:active { transform: scale(0.99); }
+
+/* LESSON HEADER */
+.lhdr { border-radius: var(--r); padding: 22px; color: white; text-align: center; margin-bottom: 18px; }
+.lemoji { font-size: 46px; margin-bottom: 8px; }
+.ltitle { font-size: 18px; font-weight: 700; line-height: 1.3; }
+.lsub   { font-size: 13px; opacity: 0.75; margin-top: 5px; }
+
+/* KEY POINT */
+.kp { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.kp:last-child { border-bottom: none; }
+.kdot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); margin-top: 7px; flex-shrink: 0; }
+
+/* QUIZ OPTION */
+.qopt { display: flex; align-items: center; gap: 12px; border: 1.5px solid var(--border); border-radius: var(--rs); padding: 13px 15px; margin-bottom: 10px; cursor: pointer; font-size: 15px; transition: all 0.15s; background: white; }
+.qopt:hover:not(.qdis) { border-color: var(--blue); background: var(--blue-light); }
+.qopt.qcorrect { border-color: var(--green); background: var(--green-light); }
+.qopt.qwrong   { border-color: var(--red);   background: var(--red-light); }
+.qopt.qdis     { cursor: default; }
+.oletter { width: 30px; height: 30px; border-radius: 50%; background: var(--gray-light); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; color: var(--gray); transition: background 0.15s, color 0.15s; }
+.qopt.qcorrect .oletter { background: var(--green); color: white; }
+.qopt.qwrong   .oletter { background: var(--red);   color: white; }
+
+/* FEEDBACK BOX */
+.fbbox { border-radius: var(--rs); padding: 13px 15px; margin-top: 10px; font-size: 14px; line-height: 1.65; }
+.fbcorrect { background: var(--green-light); color: #0a5c45; }
+.fbwrong   { background: var(--red-light);   color: #7a1a1a; }
+
+/* RESULT CIRCLE */
+.rcircle { width: 118px; height: 118px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 20px; }
+.rpass { background: var(--green-light); border: 3px solid var(--green); }
+.rfail { background: var(--red-light);   border: 3px solid var(--red); }
+.rscore { font-size: 30px; font-weight: 800; }
+.rlabel { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; margin-top: 3px; }
+
+/* ADMIN MATRIX */
+.mwrap { overflow-x: auto; }
+.mtable { border-collapse: collapse; font-size: 12px; width: 100%; min-width: 340px; }
+.mtable th { background: var(--blue); color: white; padding: 8px 6px; text-align: center; font-size: 11px; font-weight: 600; }
+.mtable th:first-child { text-align: left; border-radius: 0; }
+.mtable td { padding: 7px 5px; border-bottom: 1px solid var(--border); text-align: center; }
+.mtable td:first-child { text-align: left; font-size: 13px; }
+.mtable tr:nth-child(even) td { background: var(--gray-light); }
+.mcell { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; font-size: 13px; }
+.mc-ok  { background: var(--green-light); color: var(--green); }
+.mc-prog{ background: var(--amber-light); color: var(--amber); }
+.mc-no  { background: var(--gray-light);  color: var(--gray); }
+
+/* ADMIN FORM */
+.adminform input { width: 100%; padding: 14px; border: 1.5px solid var(--border); border-radius: var(--rs); font-size: 16px; margin-bottom: 10px; outline: none; }
+.adminform input:focus { border-color: var(--blue); }
+
+
+/* ── MATRICOLA / NUMPAD ─────────────────── */
+.np-wrap { max-width: 340px; margin: 0 auto; }
+.np-who  { display:flex; align-items:center; gap:14px; background:var(--blue-light); border-radius:var(--r); padding:14px 16px; margin-bottom:22px; }
+.np-av   { width:50px; height:50px; border-radius:50%; background:var(--blue); color:white; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:800; flex-shrink:0; }
+.np-name { font-size:17px; font-weight:700; line-height:1.2; }
+.np-dept { font-size:12px; color:var(--text-muted); margin-top:3px; }
+.np-disp { display:flex; justify-content:center; gap:12px; margin-bottom:8px; }
+.np-dot  { width:16px; height:16px; border-radius:50%; border:2.5px solid var(--border); transition:background .15s,border-color .15s; }
+.np-dot.filled { background:var(--blue); border-color:var(--blue); }
+.np-hint { text-align:center; font-size:13px; color:var(--text-muted); margin-bottom:22px; min-height:20px; }
+.np-err  { color:var(--red); font-weight:600; }
+.np-lock { color:var(--amber); font-weight:600; }
+.np-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
+.np-key  { height:68px; border:1.5px solid var(--border); border-radius:var(--r); background:white; font-size:24px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .1s,transform .1s; color:var(--text); -webkit-tap-highlight-color:transparent; }
+.np-key:active { background:var(--blue-light); transform:scale(0.95); border-color:var(--blue); }
+.np-key.del { font-size:18px; color:var(--gray); }
+.np-key.empty { border:none; background:transparent; cursor:default; }
+.np-key.empty:active { transform:none; background:none; }
+.np-confirm { width:100%; height:58px; border:none; border-radius:var(--r); background:var(--blue); color:white; font-size:17px; font-weight:700; cursor:pointer; transition:opacity .15s,transform .1s; }
+.np-confirm:active { transform:scale(0.98); opacity:.85; }
+.np-confirm:disabled { opacity:.38; cursor:not-allowed; transform:none; }
+.np-back { display:block; text-align:center; margin-top:14px; font-size:14px; color:var(--text-muted); cursor:pointer; padding:8px; border:none; background:none; width:100%; }
+
+/* HIDDEN */
+.hidden { display: none !important; }
+
+/* ANIMATION */
+.screen { animation: fadeIn 0.18s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+
+/* TOAST */
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #111; color: white; padding: 11px 20px; border-radius: 99px; font-size: 14px; font-weight: 500; z-index: 999; white-space: nowrap; transition: opacity 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); pointer-events: none; }
+#toast.hidden { opacity: 0; }
+
+/* SEARCH INPUT */
+#emp-search { width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: var(--rs); font-size: 16px; margin-bottom: 14px; outline: none; }
+#emp-search:focus { border-color: var(--blue); }
+
+/* QUIZ QUESTION BOX */
+.qqbox { background: var(--blue-light); border-radius: var(--r); padding: 16px; margin-bottom: 16px; font-size: 16px; font-weight: 500; line-height: 1.55; color: var(--blue-dark); }
+
+/* SCENARIO BOX */
+.scebox { background: var(--gray-light); border-radius: var(--rs); height: 100px; display: flex; align-items: center; justify-content: center; font-size: 54px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hdr" id="header">
+    <span class="hdr-logo">IKEA</span>
+    <span class="hdr-title" id="hdr-title">HSE Training</span>
+    <button class="hdr-btn" onclick="toggleLang()" id="lang-btn">EN</button>
+    <button class="hdr-btn hidden" onclick="goBack()" id="back-btn">← Indietro</button>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+<div id="toast" class="hidden"></div>
+
+<script>
+// ╔════════════════════════════════════════╗
+// ║  CONFIGURAZIONE — Modifica qui         ║
+// ╚════════════════════════════════════════╝
+const CONFIG = {
+  admin_password: 'hse2024',   // ← CAMBIA questa password!
+  passing_score: 70,            // % minimo per superare il quiz
+  demo_mode: true,              // true = localStorage; false = SharePoint (fase 2)
+};
+
+// ╔════════════════════════════════════════╗
+// ║  ELENCO CO-WORKER — Aggiungi / rimuovi ║
+// ╚════════════════════════════════════════╝
+// matricola = employee number on badge — workers type this to confirm identity
+const EMPLOYEES = [
+  { id:'E01', name:'Marco Rossi',      role:'warehouse',  dept:'Magazzino Nord',     matricola:'10234' },
+  { id:'E02', name:'Anna Chen',         role:'warehouse',  dept:'Magazzino Nord',     matricola:'10234' },
+  { id:'E03', name:'Ion Mihail',        role:'warehouse',  dept:'Magazzino Sud',      matricola:'10234' },
+  { id:'E04', name:'Sofia Esposito',    role:'warehouse',  dept:'Magazzino Sud',      matricola:'10234' },
+  { id:'E05', name:'Radu Popescu',      role:'warehouse',  dept:'Reparto Arrivi',     matricola:'10234' },
+  { id:'E06', name:'Ahmed Benali',      role:'warehouse',  dept:'Reparto Spedizioni', matricola:'10234' },
+  { id:'E07', name:'Giulia Ferrari',    role:'staff',      dept:'Ufficio',            matricola:'10234' },
+  { id:'E08', name:'Viktor Novak',      role:'warehouse',  dept:'Magazzino Nord',     matricola:'10234' },
+  { id:'E09', name:'Fatima Al-Hassan',  role:'warehouse',  dept:'Reparto Arrivi',     matricola:'10234' },
+  { id:'E10', name:'Moso (HSE)',        role:'hse',        dept:'HSE / Sicurezza',    matricola:'10234' },
+];
+
+// ╔════════════════════════════════════════╗
+// ║  CORSI HSE                             ║
+// ╚════════════════════════════════════════╝
+const COURSES = [
+
+// ─── CORSO 1: DPI ─────────────────────────────────────────────────────────────
+{
+  id:'C01', icon:'🦺', color:'#0058A3', required:true, roles:['all'],
+  title:{ it:'DPI — Dispositivi di Protezione Individuale', en:'PPE — Personal Protective Equipment' },
+  desc: { it:'Uso corretto dei dispositivi di protezione nel magazzino', en:'Correct use of protective equipment in the warehouse' },
+  duration:'15 min',
+  lessons:[
+    { id:'L1', num:1,
+      title:{ it:'Cosa sono i DPI e perché sono obbligatori', en:'What is PPE and why is it mandatory' },
+      content:{ it:'I Dispositivi di Protezione Individuale (DPI) sono attrezzature progettate per proteggere il lavoratore dai rischi per la salute e la sicurezza sul lavoro. In base al D.Lgs. 81/2008, il datore di lavoro è obbligato a fornirli gratuitamente e il lavoratore è obbligato a utilizzarli correttamente in ogni momento.',
+                en:'Personal Protective Equipment (PPE) is designed to protect workers from health and safety risks at work. According to D.Lgs. 81/2008, the employer must provide it free of charge and the worker must use it correctly at all times.' },
+      points:{ it:['I DPI sono obbligatori per legge — non sono facoltativi','Devi indossarli ogni volta che sei in area magazzino','Non indossarli può portare a sanzioni disciplinari e mette a rischio la tua salute','Il datore di lavoro li fornisce e sostituisce gratuitamente','Se non sai quale DPI serve per la tua attività, chiedi al responsabile HSE'],
+               en:['PPE is legally mandatory — it is not optional','Wear them every time you are in the warehouse area','Not wearing them can lead to disciplinary action and puts your health at risk','The employer provides and replaces them free of charge','If unsure which PPE is needed for your activity, ask the HSE manager'] }
+    },
+    { id:'L2', num:2,
+      title:{ it:'I DPI obbligatori nel magazzino IKEA', en:'Mandatory PPE in the IKEA warehouse' },
+      content:{ it:'Nel magazzino IKEA sono obbligatori specifici DPI in base alla zona e all\'attività svolta. È fondamentale conoscere quale protezione è necessaria: usare il DPI sbagliato o non usarlo affatto espone a rischi reali.',
+                en:'Specific PPE is mandatory in the IKEA warehouse depending on the area and activity. It is essential to know which protection is needed: using the wrong PPE or no PPE at all exposes you to real risks.' },
+      points:{ it:['👟 Scarpe antinfortunistiche S3: obbligatorie sempre in magazzino','🦺 Giubbotto alta visibilità: obbligatorio in aree con traffico carrelli','⛑️ Casco protettivo: obbligatorio in aree con carichi sopraelevati','🧤 Guanti da lavoro: obbligatori per movimentazione materiali taglienti','🥽 Occhiali protettivi: per attività con rischio proiezione di materiali'],
+               en:['👟 Safety shoes S3: always mandatory in the warehouse','🦺 High-visibility vest: mandatory in forklift traffic areas','⛑️ Hard hat: mandatory in areas with overhead loads','🧤 Work gloves: mandatory for handling sharp materials','🥽 Safety glasses: for activities with material projection risk'] }
+    },
+    { id:'L3', num:3,
+      title:{ it:'Controllo e manutenzione dei DPI', en:'PPE inspection and maintenance' },
+      content:{ it:'I DPI devono essere ispezionati prima di ogni utilizzo. Un DPI danneggiato non protegge: è pericoloso quanto non indossarne nessuno. La responsabilità di segnalare un DPI danneggiato è del lavoratore.',
+                en:'PPE must be inspected before each use. Damaged PPE does not protect: it is as dangerous as wearing none. It is the worker\'s responsibility to report damaged PPE.' },
+      points:{ it:['Controlla visivamente ogni DPI all\'inizio del turno','Segnala immediatamente qualsiasi danno al responsabile — non aspettare','Non utilizzare mai DPI danneggiati, modificati o scaduti','Conserva i DPI in modo pulito e asciutto nell\'area designata','La data di scadenza è riportata sul DPI — non ignorarla'],
+               en:['Visually inspect each PPE item at the start of your shift','Report any damage to the supervisor immediately — do not wait','Never use damaged, modified or expired PPE','Store PPE clean and dry in the designated area','The expiry date is marked on the PPE — do not ignore it'] }
+    }
+  ],
+  quiz:[
+    { id:'Q1', scenario:false,
+      q:{ it:'In quale momento del turno devi indossare le scarpe antinfortunistiche?', en:'When during your shift must you wear safety shoes?' },
+      opts:{ it:['Solo quando si sollevano carichi pesanti','Solo in presenza del responsabile','Sempre, per tutta la durata del turno in magazzino','Solo nel reparto con i carrelli elevatori'],
+             en:['Only when lifting heavy loads','Only when the supervisor is present','Always, throughout the entire warehouse shift','Only in the forklift department'] },
+      correct:2, feedback:{ it:'Corretto! Le scarpe antinfortunistiche sono obbligatorie per tutto il turno in magazzino, senza eccezioni.', en:'Correct! Safety shoes are mandatory for the entire warehouse shift, without exception.' }
+    },
+    { id:'Q2', scenario:'🦺',
+      q:{ it:'Trovi il tuo giubbotto ad alta visibilità strappato su un lato. Cosa fai?', en:'You find your high-visibility vest torn on one side. What do you do?' },
+      opts:{ it:['Lo indosso lo stesso — per oggi va bene','Lo riparo con del nastro adesivo','Segnalo il danno e richiedo un sostitutivo prima di iniziare a lavorare','Lo metto via e lavoro senza'],
+             en:['I wear it anyway — it\'s fine for today','I repair it with adhesive tape','I report the damage and request a replacement before starting work','I put it away and work without it'] },
+      correct:2, feedback:{ it:'Esatto! Un DPI danneggiato va sostituito immediatamente. Non si deve mai lavorare con DPI non integri.', en:'Exactly! Damaged PPE must be replaced immediately. You must never work with faulty PPE.' }
+    },
+    { id:'Q3', scenario:false,
+      q:{ it:'Dove devono essere conservati i DPI quando non si usano?', en:'Where should PPE be stored when not in use?' },
+      opts:{ it:['In auto o nella borsa personale','Sul pavimento vicino alla postazione di lavoro','Nell\'apposita area designata, puliti e asciutti','Non importa dove, basta che ci siano'],
+             en:['In the car or personal bag','On the floor near the workstation','In the designated area, clean and dry','It doesn\'t matter where, as long as they are there'] },
+      correct:2, feedback:{ it:'Corretto! I DPI si conservano nell\'area designata, puliti, asciutti e pronti per il prossimo utilizzo.', en:'Correct! PPE must be stored in the designated area, clean, dry and ready for next use.' }
+    },
+    { id:'Q4', scenario:false,
+      q:{ it:'Quale normativa italiana rende obbligatorio l\'uso dei DPI sul lavoro?', en:'Which Italian regulation makes PPE use mandatory at work?' },
+      opts:{ it:['Codice della Strada (2002)','D.Lgs. 81/2008 — Testo Unico sulla Sicurezza','Solo il regolamento interno IKEA','Nessuna norma specifica'],
+             en:['Highway Code (2002)','D.Lgs. 81/2008 — Consolidated Safety Act','Only the internal IKEA regulation','No specific regulation'] },
+      correct:1, feedback:{ it:'Il D.Lgs. 81/2008, "Testo Unico sulla Sicurezza", è la legge principale italiana su salute e sicurezza nel lavoro.', en:'D.Lgs. 81/2008, the "Consolidated Safety Act", is Italy\'s main law on health and safety at work.' }
+    },
+    { id:'Q5', scenario:'📦',
+      q:{ it:'Stai aprendo scatole con bordi di cartone taglienti. Quale DPI è prioritario?', en:'You are opening boxes with sharp cardboard edges. Which PPE is the priority?' },
+      opts:{ it:['Casco protettivo','Giubbotto ad alta visibilità','Guanti da lavoro resistenti ai tagli','Occhiali protettivi'],
+             en:['Hard hat','High-visibility vest','Cut-resistant work gloves','Safety glasses'] },
+      correct:2, feedback:{ it:'Esatto! Per la movimentazione di materiali con bordi taglienti, i guanti da lavoro proteggono le mani dalle lacerazioni.', en:'Exactly! For handling materials with sharp edges, work gloves protect the hands from lacerations.' }
+    }
+  ]
+},
+
+// ─── CORSO 2: EMERGENZE ────────────────────────────────────────────────────────
+{
+  id:'C02', icon:'🚨', color:'#C0392B', required:true, roles:['all'],
+  title:{ it:'Gestione delle Emergenze e Antincendio', en:'Emergency Management and Fire Safety' },
+  desc: { it:'Evacuazione, uso degli estintori e numeri di emergenza', en:'Evacuation, fire extinguisher use and emergency numbers' },
+  duration:'20 min',
+  lessons:[
+    { id:'L1', num:1,
+      title:{ it:'Tipi di emergenza e come riconoscerle', en:'Types of emergency and how to recognize them' },
+      content:{ it:'Nel magazzino possono verificarsi diverse tipologie di emergenza. La chiave è saper riconoscere il segnale e rispondere in modo rapido e organizzato. Il panico è il principale nemico: mantieni sempre la calma e segui le procedure.',
+                en:'Various types of emergency can occur in the warehouse. The key is to recognize the signal and respond quickly and in an organized manner. Panic is the main enemy: always stay calm and follow procedures.' },
+      points:{ it:['🔥 Incendio: sirena continua — evacua immediatamente','🏥 Emergenza medica: chiama il 118 e il numero interno','⚠️ Spandimento chimico: allontanati e segnala al responsabile HSE','Non aspettare conferma per evacuare — agisci subito','Il numero di emergenza interno è affisso in ogni reparto'],
+               en:['🔥 Fire: continuous siren — evacuate immediately','🏥 Medical emergency: call 118 and the internal number','⚠️ Chemical spill: move away and report to HSE manager','Do not wait for confirmation to evacuate — act immediately','The internal emergency number is posted in every department'] }
+    },
+    { id:'L2', num:2,
+      title:{ it:'Procedure di evacuazione del magazzino', en:'Warehouse evacuation procedures' },
+      content:{ it:'In caso di evacuazione ogni secondo è prezioso. Devi conoscere le uscite di emergenza della tua area e dove si trova il punto di raccolta. Non tornare mai indietro per recuperare oggetti personali: non valgono la tua incolumità.',
+                en:'In an evacuation every second is precious. You must know the emergency exits in your area and where the assembly point is. Never go back to retrieve personal items: they are not worth your safety.' },
+      points:{ it:['Segui le frecce VERDI di emergenza verso le uscite','⛔ Non usare MAI l\'ascensore durante l\'evacuazione','📍 Punto di raccolta: Parcheggio Est (lato Via Emilia)','Segnala al responsabile se manca qualche collega','Aspetta le istruzioni prima di rientrare','Non ostruire MAI le vie di fuga con materiale o attrezzature'],
+               en:['Follow the GREEN emergency arrows toward exits','⛔ NEVER use the elevator during an evacuation','📍 Assembly point: East Parking (Via Emilia side)','Report to the supervisor if a colleague is missing','Wait for instructions before re-entering','NEVER block emergency exits with material or equipment'] }
+    },
+    { id:'L3', num:3,
+      title:{ it:'Uso dell\'estintore — tecnica PASS', en:'Using the fire extinguisher — PASS technique' },
+      content:{ it:'Un estintore va usato solo su fuochi piccoli e controllabili, solo se sei addestrato e solo se è sicuro farlo. Se il fuoco è grande o si espande: evacua immediatamente e chiama i Vigili del Fuoco (115).',
+                en:'A fire extinguisher should only be used on small, controllable fires, only if you are trained and only if it is safe to do so. If the fire is large or spreading: evacuate immediately and call the fire brigade (115).' },
+      points:{ it:['P — Pull: estrai il perno di sicurezza dall\'impugnatura','A — Aim: punta l\'ugello alla BASE delle fiamme, non in alto','S — Squeeze: premi la maniglia superiore con decisione','S — Sweep: spazza lateralmente finché le fiamme si spengono','Distanza di sicurezza: circa 2-3 metri dal fuoco','In caso di dubbio: EVACUA prima e chiama il 115'],
+               en:['P — Pull: pull the safety pin from the handle','A — Aim: point the nozzle at the BASE of the flames, not the top','S — Squeeze: press the upper handle firmly','S — Sweep: sweep side to side until the flames are out','Safe distance: approximately 2-3 metres from the fire','When in doubt: EVACUATE first and call 115'] }
+    }
+  ],
+  quiz:[
+    { id:'Q1', scenario:false,
+      q:{ it:'Senti la sirena di evacuazione. Qual è la prima cosa che fai?', en:'You hear the evacuation siren. What is the first thing you do?' },
+      opts:{ it:['Aspetto che un collega mi confermi se è reale','Raccolgo le mie cose personali e poi esco','Smetto immediatamente il lavoro e seguo le uscite di emergenza','Chiamo il responsabile per chiedere conferma'],
+             en:['I wait for a colleague to confirm if it is real','I collect my personal items and then leave','I immediately stop working and follow the emergency exits','I call the supervisor to ask for confirmation'] },
+      correct:2, feedback:{ it:'Corretto! Alla sirena si evacua subito, senza aspettare conferme e senza raccogliere oggetti personali.', en:'Correct! When the siren sounds, evacuate immediately, without waiting for confirmation and without collecting personal items.' }
+    },
+    { id:'Q2', scenario:'🔥',
+      q:{ it:'Vedi un piccolo incendio agli imballaggi. Cosa fai prima di tutto?', en:'You see a small fire near packaging materials. What do you do first of all?' },
+      opts:{ it:['Cerco subito di spegnerlo da solo con l\'estintore','Allerto i colleghi, attivo l\'allarme e valuto se è sicuro usare l\'estintore','Scappo senza avvertire nessuno','Aspetto che si spenga da solo'],
+             en:['I immediately try to put it out alone with the extinguisher','I alert colleagues, activate the alarm and assess if it\'s safe to use the extinguisher','I run away without alerting anyone','I wait for it to go out on its own'] },
+      correct:1, feedback:{ it:'Esatto! Prima si allerta e si attiva l\'allarme. Solo dopo, se il fuoco è piccolo e si è addestrati, si valuta l\'uso dell\'estintore. Le persone vengono prima.', en:'Exactly! First alert and activate the alarm. Only then, if the fire is small and you are trained, assess using the extinguisher. People come first.' }
+    },
+    { id:'Q3', scenario:false,
+      q:{ it:'È accettabile usare l\'ascensore durante un\'evacuazione per scendere più velocemente?', en:'Is it acceptable to use the elevator during an evacuation to get down faster?' },
+      opts:{ it:['Sì, se sono a un piano alto','Sì, se non c\'è fumo visibile','No — gli ascensori non si usano mai durante le emergenze','Dipende dal tipo di emergenza'],
+             en:['Yes, if I am on an upper floor','Yes, if there is no visible smoke','No — elevators are never used during emergencies','It depends on the type of emergency'] },
+      correct:2, feedback:{ it:'Corretto! Gli ascensori NON devono mai essere usati in emergenza. Un\'interruzione di corrente potrebbe blocarti all\'interno.', en:'Correct! Elevators must NEVER be used in emergencies. A power cut could trap you inside.' }
+    },
+    { id:'Q4', scenario:false,
+      q:{ it:'Qual è la tecnica standard per usare un estintore?', en:'What is the standard technique for using a fire extinguisher?' },
+      opts:{ it:['FIRE — Find, Investigate, Run, Exit','STOP — Stand, Think, Observe, Prepare','PASS — Pull, Aim, Squeeze, Sweep','Non esiste una tecnica ufficiale'],
+             en:['FIRE — Find, Investigate, Run, Exit','STOP — Stand, Think, Observe, Prepare','PASS — Pull, Aim, Squeeze, Sweep','There is no official technique'] },
+      correct:2, feedback:{ it:'La tecnica PASS è il metodo standard internazionale: Pull (estrai), Aim (punta alla base), Squeeze (premi), Sweep (spazza).', en:'The PASS technique is the standard international method: Pull, Aim (at the base), Squeeze, Sweep.' }
+    },
+    { id:'Q5', scenario:false,
+      q:{ it:'Dove si trova il punto di raccolta principale del magazzino?', en:'Where is the main warehouse assembly point?' },
+      opts:{ it:['Ingresso principale IKEA clienti','Parcheggio Est — lato Via Emilia','Refettorio al piano superiore','Davanti all\'ufficio HSE'],
+             en:['Main IKEA customer entrance','East Parking — Via Emilia side','Canteen on the upper floor','In front of the HSE office'] },
+      correct:1, feedback:{ it:'Esatto! Il punto di raccolta è nel Parcheggio Est. Memorizzalo e comunicalo a chi non lo conosce.', en:'Exactly! The assembly point is in the East Parking. Memorize it and communicate it to those who do not know it.' }
+    }
+  ]
+},
+
+// ─── CORSO 3: MMC ─────────────────────────────────────────────────────────────
+{
+  id:'C03', icon:'📦', color:'#D97706', required:true, roles:['warehouse'],
+  title:{ it:'Movimentazione Manuale dei Carichi (MMC)', en:'Manual Load Handling (MLH)' },
+  desc: { it:'Tecniche di sollevamento sicure e uso degli ausili meccanici', en:'Safe lifting techniques and use of mechanical aids' },
+  duration:'18 min',
+  lessons:[
+    { id:'L1', num:1,
+      title:{ it:'Rischi e limiti della movimentazione manuale', en:'Risks and limits of manual handling' },
+      content:{ it:'La movimentazione manuale dei carichi è tra le prime cause di infortuni e malattie professionali in magazzino. Mal di schiena, ernie e lesioni muscolari possono essere evitati. Il rispetto dei limiti di peso è professionalità, non debolezza.',
+                en:'Manual load handling is among the leading causes of injuries and occupational diseases in warehouses. Back pain, hernias and muscle injuries can be avoided. Respecting weight limits is professionalism, not weakness.' },
+      points:{ it:['I disturbi muscoloscheletrici sono la 1ª causa di infortuni in magazzino','Peso massimo sollevabile manualmente: 25 kg (uomini) / 15 kg (donne)','I rischi aumentano con movimenti ripetitivi o posture scorrette','Usa gli ausili meccanici ogni volta che sono disponibili e necessari','Segnala dolori o fastidi prima che diventino lesioni croniche'],
+               en:['Musculoskeletal disorders are the #1 cause of warehouse injuries','Maximum manually liftable weight: 25 kg (men) / 15 kg (women)','Risks increase with repetitive movements or incorrect postures','Use mechanical aids every time they are available and needed','Report pain or discomfort before it becomes a chronic injury'] }
+    },
+    { id:'L2', num:2,
+      title:{ it:'La tecnica corretta di sollevamento', en:'The correct lifting technique' },
+      content:{ it:'Ogni sollevamento deve essere pianificato. Valuta il peso, assicurati di avere spazio e stabilità. La schiena deve rimanere dritta: tutta la forza deve provenire dai muscoli delle gambe, che sono molto più forti dei muscoli della schiena.',
+                en:'Every lift must be planned. Assess the weight, make sure you have space and stability. The back must remain straight: all force must come from the leg muscles, which are much stronger than the back muscles.' },
+      points:{ it:['1️⃣ Avvicinati: piedi alla larghezza delle spalle, carico vicino al corpo','2️⃣ Piega le ginocchia — mai la schiena — fino al carico','3️⃣ Afferra con tutta la mano, non solo le dita','4️⃣ Raddrizza le gambe lentamente, tenendo la schiena dritta','5️⃣ Per girare: muovi prima i piedi, non torcere mai la schiena','6️⃣ Per posare: inverti il procedimento, piega di nuovo le ginocchia'],
+               en:['1️⃣ Approach: feet shoulder-width apart, load close to body','2️⃣ Bend the knees — never the back — down to the load','3️⃣ Grip with the whole hand, not just fingers','4️⃣ Straighten the legs slowly, keeping the back straight','5️⃣ To turn: move your feet first, never twist the back','6️⃣ To set down: reverse the process, bend the knees again'] }
+    },
+    { id:'L3', num:3,
+      title:{ it:'Ausili meccanici disponibili in magazzino', en:'Mechanical aids available in the warehouse' },
+      content:{ it:'IKEA mette a disposizione diversi ausili meccanici per ridurre il rischio di infortuni. Usarli quando necessario non è una scelta: è un obbligo. Non usare un ausilio disponibile per "fare prima" è un comportamento non sicuro.',
+                en:'IKEA provides various mechanical aids to reduce the risk of injury. Using them when necessary is not a choice: it is an obligation. Not using an available aid to "save time" is unsafe behaviour.' },
+      points:{ it:['🔧 Transpallet manuale: per carichi su pallet fino a 2500 kg','🛒 Carrello portacarichi: per scatole e pacchi multipli','🚜 Carrello elevatore: solo personale autorizzato (patentino)','📦 Nastri trasportatori nelle aree arrivo/spedizione','Segnala immediatamente guasti agli ausili meccanici al responsabile'],
+               en:['🔧 Manual pallet truck: for pallet loads up to 2500 kg','🛒 Load trolley: for multiple boxes and packages','🚜 Forklift: authorized personnel only (licence required)','📦 Conveyor belts in arrival/shipping areas','Immediately report mechanical aid faults to the supervisor'] }
+    }
+  ],
+  quiz:[
+    { id:'Q1', scenario:false,
+      q:{ it:'Qual è il peso massimo che un uomo può sollevare manualmente secondo le norme italiane?', en:'What is the maximum weight a man can manually lift according to Italian regulations?' },
+      opts:{ it:['15 kg','20 kg','25 kg','35 kg'],
+             en:['15 kg','20 kg','25 kg','35 kg'] },
+      correct:2, feedback:{ it:'Corretto! 25 kg per gli uomini, 15 kg per le donne. Oltre questi limiti è obbligatorio usare ausili meccanici.', en:'Correct! 25 kg for men, 15 kg for women. Beyond these limits mechanical aids must be used.' }
+    },
+    { id:'Q2', scenario:'📦',
+      q:{ it:'Stai per sollevare una scatola pesante dal pavimento. Come posizioni il corpo?', en:'You are about to lift a heavy box from the floor. How do you position your body?' },
+      opts:{ it:['Gambe dritte e schiena piegata in avanti','Ginocchia piegate, schiena dritta, carico vicino al corpo','Mi chino velocemente e sollevo con un colpo secco','Non importa la posizione, l\'importante è fare in fretta'],
+             en:['Straight legs and back bent forward','Knees bent, back straight, load close to body','I bend down quickly and lift with a sharp movement','The position doesn\'t matter, what matters is being fast'] },
+      correct:1, feedback:{ it:'Esatto! Ginocchia piegate, schiena dritta, carico vicino al corpo. La forza viene dalle gambe, non dalla schiena.', en:'Exactly! Knees bent, back straight, load close to body. The force comes from the legs, not the back.' }
+    },
+    { id:'Q3', scenario:false,
+      q:{ it:'Stai portando un carico e devi svoltare a destra. Come ti giri?', en:'You are carrying a load and need to turn right. How do you turn?' },
+      opts:{ it:['Ruoto la schiena tenendo i piedi fermi','Muovo prima i piedi e ruoto tutto il corpo insieme','Mi giro di scatto per essere più veloce','Non importa come mi giro se il carico non è pesante'],
+             en:['I rotate my back keeping my feet still','I move my feet first and rotate my whole body together','I turn sharply to be faster','It doesn\'t matter how I turn if the load is not heavy'] },
+      correct:1, feedback:{ it:'Corretto! Con un carico in mano si spostano SEMPRE prima i piedi. Torcere solo la schiena è molto pericoloso.', en:'Correct! When carrying a load, ALWAYS move your feet first. Twisting only the back is very dangerous.' }
+    },
+    { id:'Q4', scenario:false,
+      q:{ it:'Quando è OBBLIGATORIO usare il transpallet?', en:'When is it MANDATORY to use a pallet truck?' },
+      opts:{ it:['Solo per carichi superiori a 1 tonnellata','Quando il peso supera i limiti individuali o il percorso è lungo','Solo quando il responsabile lo ordina esplicitamente','Il transpallet è sempre facoltativo'],
+             en:['Only for loads over 1 tonne','When the weight exceeds individual limits or the route is long','Only when the supervisor explicitly orders it','The pallet truck is always optional'] },
+      correct:1, feedback:{ it:'Esatto! Il transpallet è obbligatorio quando il peso supera i limiti individuali, il percorso è lungo o il terreno è irregolare.', en:'Exactly! The pallet truck is mandatory when weight exceeds individual limits, the route is long or the terrain is uneven.' }
+    },
+    { id:'Q5', scenario:false,
+      q:{ it:'Da quale parte del corpo deve provenire la forza durante il sollevamento di un carico?', en:'From which part of the body should the lifting force come?' },
+      opts:{ it:['Dalla schiena','Dalle braccia e dalle spalle','Dai muscoli delle gambe','Non importa — basta sollevare'],
+             en:['From the back','From the arms and shoulders','From the leg muscles','It doesn\'t matter — just lift'] },
+      correct:2, feedback:{ it:'Corretto! La forza deve sempre venire dai muscoli delle gambe. La schiena rimane dritta e funge solo da supporto.', en:'Correct! The force must always come from the leg muscles. The back remains straight and serves only as support.' }
+    }
+  ]
+},
+
+// ─── CORSO 4: RISCHIO CHIMICO ─────────────────────────────────────────────────
+{
+  id:'C04', icon:'⚗️', color:'#7C3AED', required:true, roles:['all'],
+  title:{ it:'Rischio Chimico — Prodotti in Magazzino', en:'Chemical Risk — Warehouse Products' },
+  desc: { it:'Schede di sicurezza, pittogrammi GHS e primo soccorso chimico', en:'Safety data sheets, GHS pictograms and chemical first aid' },
+  duration:'15 min',
+  lessons:[
+    { id:'L1', num:1,
+      title:{ it:'Prodotti chimici presenti e come riconoscerli', en:'Chemical products present and how to recognize them' },
+      content:{ it:'Anche in un magazzino come IKEA sono presenti prodotti chimici: detergenti, lubrificanti, vernici, adesivi, batterie. Non tutti sono pericolosi allo stesso livello, ma tutti devono essere trattati con rispetto e attenzione. Il primo passo è saper riconoscerli.',
+                en:'Even in a warehouse like IKEA there are chemical products: detergents, lubricants, paints, adhesives, batteries. Not all are equally dangerous, but all must be treated with care and attention. The first step is knowing how to recognize them.' },
+      points:{ it:['I prodotti chimici si riconoscono dai pittogrammi GHS (simboli sulle etichette)','Non spostare mai prodotti chimici in contenitori senza etichetta','Un contenitore senza etichetta = PERICOLO SCONOSCIUTO: non toccare','Conserva i prodotti chimici solo nell\'area designata e separata','Non mescolare mai prodotti chimici diversi: può creare reazioni pericolose'],
+               en:['Chemical products are recognizable by GHS pictograms (symbols on labels)','Never transfer chemical products to unlabelled containers','A container without a label = UNKNOWN DANGER: do not touch','Store chemical products only in the designated and separate area','Never mix different chemical products: it can create dangerous reactions'] }
+    },
+    { id:'L2', num:2,
+      title:{ it:'Le Schede di Sicurezza (SDS)', en:'Safety Data Sheets (SDS)' },
+      content:{ it:'Ogni prodotto chimico deve obbligatoriamente avere una Scheda di Sicurezza (SDS — Safety Data Sheet). È un documento standardizzato che contiene tutto ciò che serve sapere per usarlo in sicurezza. Sapere dove trovarla è fondamentale.',
+                en:'Every chemical product must have a Safety Data Sheet (SDS). It is a standardized document containing everything needed to use it safely. Knowing where to find it is essential.' },
+      points:{ it:['La SDS è obbligatoria per legge per ogni prodotto chimico','Contiene: composizione, rischi, DPI necessari, procedure di emergenza','Le SDS sono disponibili presso il responsabile HSE','In caso di incidente, mostra sempre la SDS al personale di soccorso (118)','Le SDS devono essere in lingua italiana per i lavoratori italiani'],
+               en:['SDS is legally required for every chemical product','It contains: composition, risks, required PPE, emergency procedures','SDS are available from the HSE manager','In an accident, always show the SDS to emergency services (118)','SDS must be in Italian for Italian workers'] }
+    },
+    { id:'L3', num:3,
+      title:{ it:'Primo soccorso in caso di esposizione chimica', en:'First aid in case of chemical exposure' },
+      content:{ it:'In caso di contatto accidentale con un prodotto chimico, la velocità di risposta è tutto. Conosci le procedure di base: alcune azioni sbagliate (come il far vomitare in caso di ingestione) possono aggravare la situazione.',
+                en:'In case of accidental contact with a chemical product, speed of response is everything. Know the basic procedures: some wrong actions (such as inducing vomiting after ingestion) can worsen the situation.' },
+      points:{ it:['👁️ Contatto occhi: lava con acqua corrente per ALMENO 15 minuti','🙌 Contatto pelle: rimuovi i vestiti contaminati, lava abbondantemente con acqua','💨 Inalazione: porta la persona all\'aria aperta immediatamente','⛔ Ingestione: NON far vomitare — chiama subito il 118','📋 Informa sempre il responsabile e compila il registro infortuni'],
+               en:['👁️ Eye contact: rinse with running water for AT LEAST 15 minutes','🙌 Skin contact: remove contaminated clothing, rinse thoroughly with water','💨 Inhalation: bring the person to fresh air immediately','⛔ Ingestion: do NOT induce vomiting — call 118 immediately','📋 Always inform the supervisor and fill out the incident register'] }
+    }
+  ],
+  quiz:[
+    { id:'Q1', scenario:'⚗️',
+      q:{ it:'Trovi un contenitore con un liquido senza etichetta in magazzino. Cosa fai?', en:'You find a container with a liquid and no label in the warehouse. What do you do?' },
+      opts:{ it:['Lo annuso per capire di cosa si tratta','Lo sposto in un\'area più sicura','Non lo tocco e segnalo immediatamente al responsabile HSE','Lo butto nel bidone rifiuti generico'],
+             en:['I smell it to understand what it is','I move it to a safer area','I do not touch it and immediately report it to the HSE manager','I throw it in the general waste bin'] },
+      correct:2, feedback:{ it:'Corretto! Un contenitore senza etichetta rappresenta un pericolo sconosciuto. Non toccarlo mai — segnala al responsabile HSE.', en:'Correct! An unlabelled container represents an unknown hazard. Never touch it — report to the HSE manager.' }
+    },
+    { id:'Q2', scenario:false,
+      q:{ it:'Un prodotto chimico ti schizza negli occhi. Qual è la prima cosa da fare?', en:'A chemical product splashes in your eyes. What is the first thing to do?' },
+      opts:{ it:['Chiudo gli occhi e aspetto che passi','Vado subito in ufficio a trovare la SDS','Mi strofino gli occhi con un fazzoletto','Lavo gli occhi con acqua corrente per almeno 15 minuti'],
+             en:['I close my eyes and wait for it to pass','I go to the office to find the SDS','I rub my eyes with a tissue','I rinse my eyes with running water for at least 15 minutes'] },
+      correct:3, feedback:{ it:'Esatto! In caso di contatto chimico con gli occhi, lavare immediatamente con acqua corrente per ALMENO 15 minuti. Poi chiamare il 118.', en:'Exactly! In case of chemical eye contact, immediately rinse with running water for AT LEAST 15 minutes. Then call 118.' }
+    },
+    { id:'Q3', scenario:false,
+      q:{ it:'Dove trovi le Schede di Sicurezza (SDS) in caso di emergenza?', en:'Where do you find Safety Data Sheets (SDS) in case of emergency?' },
+      opts:{ it:['Solo sul sito internet del produttore','Le ho memorizzate, non serve cercarle','Presso il responsabile HSE o nell\'area designata','Non esiste la SDS per i prodotti comuni da magazzino'],
+             en:['Only on the manufacturer\'s website','I have memorized them, no need to look for them','With the HSE manager or in the designated area','SDS don\'t exist for common warehouse products'] },
+      correct:2, feedback:{ it:'Le SDS sono disponibili presso il responsabile HSE. In caso di incidente bisogna poterle trovare rapidamente per mostrarle al 118.', en:'SDS are available from the HSE manager. In case of an incident they must be quickly findable to show to 118.' }
+    },
+    { id:'Q4', scenario:false,
+      q:{ it:'Un collega ha ingerito accidentalmente un prodotto chimico. Cosa fai?', en:'A colleague has accidentally ingested a chemical product. What do you do?' },
+      opts:{ it:['Lo faccio vomitare subito per espellere il prodotto','Gli do del latte da bere per neutralizzare','Chiamo immediatamente il 118 senza farlo vomitare','Aspetto che si senta meglio da solo'],
+             en:['I make them vomit immediately to expel the product','I give them milk to drink to neutralize','I immediately call 118 without inducing vomiting','I wait for them to feel better on their own'] },
+      correct:2, feedback:{ it:'Esatto! In caso di ingestione chimica NON si fa mai vomitare — può peggiorare le ustioni. Si chiama il 118 e si mostra la SDS del prodotto.', en:'Exactly! In case of chemical ingestion NEVER induce vomiting — it can worsen burns. Call 118 and show the product SDS.' }
+    },
+    { id:'Q5', scenario:false,
+      q:{ it:'Cosa sono i pittogrammi GHS sulle etichette dei prodotti chimici?', en:'What are the GHS pictograms on chemical product labels?' },
+      opts:{ it:['Simboli decorativi del produttore','Indicazioni per il riciclo del contenitore','Simboli internazionali standardizzati che indicano il tipo di pericolo del prodotto','Il codice del prezzo in formato grafico'],
+             en:['Decorative symbols by the manufacturer','Instructions for recycling the container','Standardized international symbols indicating the type of product hazard','The price code in graphic format'] },
+      correct:2, feedback:{ it:'Corretto! I pittogrammi GHS (Globally Harmonized System) sono simboli internazionali che indicano il tipo di pericolo: infiammabile, corrosivo, tossico, ecc.', en:'Correct! GHS (Globally Harmonized System) pictograms are international symbols indicating the type of hazard: flammable, corrosive, toxic, etc.' }
+    }
+  ]
+}
+
+
+// ─── CORSO 5: PRIMO SOCCORSO ──────────────────────────────────────────────────
+,{
+  id:'C05', icon:'🩺', color:'#DC2626', required:true, roles:['all'],
+  title:{ it:'Primo Soccorso in Magazzino', en:'First Aid in the Warehouse' },
+  desc: { it:'Come reagire a infortuni, riconoscere le emergenze mediche e usare il defibrillatore', en:'How to respond to injuries, recognise medical emergencies, and use the defibrillator' },
+  duration:'20 min',
+  lessons:[
+    { id:'L1', num:1,
+      title:{ it:'Cosa fare nei primi minuti', en:'What to do in the first minutes' },
+      content:{ it:'In caso di infortunio i primi 10 minuti sono critici. Segui sempre questa sequenza: prima di tutto verifica che la scena sia sicura — non avvicinarti se ci sono rischi attivi (corrente elettrica, gas, traffico carrelli). Chiama il 112 subito: comunicare cosa è successo, dove sei (IKEA Piacenza, reparto) e quante persone sono coinvolte. Non spostare la vittima se non strettamente necessario — in caso di caduta o trauma potrebbe esserci una lesione alla colonna vertebrale. Mantieni la calma e parla con la persona, questo riduce il panico e ti aiuta a valutare la coscienza. I kit di primo soccorso si trovano nelle cassette verdi con croce bianca. Il DAE (defibrillatore) è vicino all\'uscita principale.',
+                en:'In case of injury the first 10 minutes are critical. Always follow this sequence: first verify the scene is safe — do not approach if there are active risks (electricity, gas, forklift traffic). Call 112 immediately: state what happened, where you are (IKEA Piacenza, department) and how many people are involved. Do not move the victim unless absolutely necessary — in case of a fall or trauma there may be a spinal injury. Stay calm and talk to the person, this reduces panic and helps assess consciousness. First aid kits are in green boxes with a white cross. The AED (defibrillator) is near the main exit.' },
+      points:{ it:['Prima di avvicinarti: la scena è sicura da rischi attivi?','Chiama il 112: COSA — DOVE (IKEA Piacenza, reparto) — QUANTE PERSONE','Non spostare mai la vittima senza necessità urgente','Kit primo soccorso: cassette verdi con croce bianca vicino a ogni uscita','DAE (defibrillatore): vicino all\'uscita principale — per tutti, non serve formazione'],
+               en:['Before approaching: is the scene free of active risks?','Call 112: WHAT — WHERE (IKEA Piacenza, dept) — HOW MANY PEOPLE','Never move the victim without urgent necessity','First aid kit: green boxes with white cross near each exit','AED (defibrillator): near main exit — for everyone, no training required'] }
+    },
+    { id:'L2', num:2,
+      title:{ it:'Arresto cardiaco e RCP di base', en:'Cardiac arrest and basic CPR' },
+      content:{ it:'L\'arresto cardiaco è un\'emergenza che richiede azione immediata — ogni minuto senza RCP riduce le possibilità di sopravvivenza del 10%. Riconoscila così: la persona non risponde e non respira (o ha solo respiro agonico — boccheggia irregolarmente). Catena della sopravvivenza: chiama il 112 subito mettendo in vivavoce. Poi le compressioni toraciche: metti le mani al centro del petto, braccia dritte, e comprimi forte e veloce — 100-120 compressioni al minuto, profondità 5-6 cm. Mentalmente canta "Stayin\' Alive" dei Bee Gees: ha esattamente il ritmo giusto. Continua senza fermarti fino all\'arrivo dei soccorsi. Usa il DAE appena disponibile — segue le istruzioni vocali ed è progettato per chiunque. Non aver paura di fare male: costole rotte durante la RCP si aggiustano, senza RCP quella persona muore.',
+                en:'Cardiac arrest is an emergency requiring immediate action — every minute without CPR reduces survival chances by 10%. Recognise it: person is unresponsive and not breathing (or only agonal breathing — irregular gasping). Chain of survival: call 112 immediately on speakerphone. Then chest compressions: place hands centre of chest, arms straight, push hard and fast — 100-120 per minute, depth 5-6 cm. Mentally sing "Stayin\' Alive" by the Bee Gees: it has exactly the right rhythm. Keep going without stopping until emergency services arrive. Use the AED as soon as available — it gives voice instructions and is designed for anyone. Do not fear causing harm: broken ribs from CPR heal, without CPR that person dies.' },
+      points:{ it:['Ogni minuto senza RCP = -10% di probabilità di sopravvivenza','Non risponde + non respira → inizia la RCP immediatamente','100-120 compressioni al minuto, profondità 5-6 cm: usa "Stayin\' Alive" come ritmo','DAE vicino all\'uscita principale: le istruzioni vocali guidano passo passo','Chiunque può fare la RCP — non aspettare qualcuno di "più esperto"'],
+               en:['Every minute without CPR = -10% survival probability','Unresponsive + not breathing → start CPR immediately','100-120 compressions per minute, 5-6 cm depth: use "Stayin\' Alive" as rhythm','AED near main exit: voice instructions guide you step by step','Anyone can do CPR — do not wait for someone "more expert"'] }
+    },
+    { id:'L3', num:3,
+      title:{ it:'Tagli, ustioni e cadute', en:'Cuts, burns and falls' },
+      content:{ it:'I tre infortuni più frequenti in magazzino e come gestirli. Taglio o ferita: comprimi con un panno pulito (indossando guanti se disponibili), tieni elevata la parte ferita e non rimuovere mai oggetti conficcati. Ferite profonde che non smettono di sanguinare → chiama il 112. Ustione: raffredda subito con acqua fredda corrente per almeno 10 minuti — non usare ghiaccio, burro o creme e non bucare le vesciche. Ustioni estese, al viso o alle mani → 112. Caduta o trauma: se la persona si alza senza dolore assistila normalmente. Se riferisce dolore alla schiena, al collo o alla testa, ha intorpidimento o è svenuta: NON spostarla, chiama il 112 e attendi i soccorsi. Applica ghiaccio avvolto in un panno su lividi per ridurre il gonfiore.',
+                en:'The three most frequent warehouse injuries and how to manage them. Cut or wound: compress with a clean cloth (wearing gloves if available), elevate the injured part and never remove embedded objects. Deep wounds that won\'t stop bleeding → call 112. Burn: immediately cool with cold running water for at least 10 minutes — no ice, butter or creams, do not pop blisters. Extensive burns or burns to face/hands → 112. Fall or trauma: if person gets up without pain assist them normally. If they report back, neck or head pain, have numbness or have fainted: do NOT move them, call 112 and wait for emergency services. Apply ice wrapped in cloth on bruises to reduce swelling.' },
+      points:{ it:['Taglio: comprimi con panno pulito, indossa guanti, tieni elevato','Ustione: acqua fredda corrente 10 minuti — no ghiaccio, no burro, no creme','Caduta con dolore schiena/testa/collo o svenimento: NON spostare, chiama 112','Sempre guanti nel kit di pronto soccorso: usali quando assisti qualcuno','Compila sempre il registro infortuni anche per incidenti apparentemente lievi'],
+               en:['Cut: compress with clean cloth, wear gloves, elevate','Burn: cold running water 10 minutes — no ice, no butter, no creams','Fall with back/head/neck pain or fainting: do NOT move, call 112','Gloves in first aid kit: always use them when assisting someone','Always fill in the incident register even for apparently minor incidents'] }
+    }
+  ],
+  quiz:[
+    { id:'Q1', scenario:false,
+      q:{ it:'Trovi un collega a terra, non risponde quando lo chiami per nome. Qual è la tua prima azione?', en:'You find a colleague on the floor, unresponsive when you call their name. What is your first action?' },
+      opts:{ it:['Lo sposto in una posizione più comoda e aspetto che si riprenda','Verifico che la scena sia sicura, poi chiamo il 112 immediatamente','Inizio subito le compressioni toraciche senza chiamare i soccorsi','Aspetto che arrivi qualcuno più esperto di me in primo soccorso'],
+             en:['I move them to a more comfortable position and wait for them to recover','I verify the scene is safe, then call 112 immediately','I start chest compressions straight away without calling emergency services','I wait for someone more expert in first aid to arrive'] },
+      correct:1, feedback:{ it:'Corretto! Prima la sicurezza della scena, poi il 112. La RCP si avvia solo se la persona non risponde E non respira — e sempre dopo aver chiamato i soccorsi.', en:'Correct! Scene safety first, then 112. CPR starts only if the person is unresponsive AND not breathing — and always after calling emergency services.' }
+    },
+    { id:'Q2', scenario:'🔥',
+      q:{ it:'Un collega si è ustionato la mano con un oggetto caldo. Qual è il trattamento immediato corretto?', en:'A colleague has burned their hand with a hot object. What is the correct immediate treatment?' },
+      opts:{ it:['Applico ghiaccio direttamente sulla cute bruciata','Spalmo burro o olio vegetale per lenire il bruciore','Raffreddo con acqua fredda corrente per almeno 10 minuti','Fasciatura stretta per contenere il gonfiore e la bolla'],
+             en:['I apply ice directly to the burned skin','I spread butter or vegetable oil to soothe the burning','I cool with cold running water for at least 10 minutes','Tight bandage to contain the swelling and blister'] },
+      correct:2, feedback:{ it:'Esatto! Acqua fredda corrente per 10+ minuti è l\'unico trattamento immediato corretto. Il ghiaccio e i grassi aggravano il danno tissutale — non usarli mai sulle ustioni.', en:'Correct! Cold running water for 10+ minutes is the only correct immediate treatment. Ice and fats worsen tissue damage — never apply them to burns.' }
+    },
+    { id:'Q3', scenario:false,
+      q:{ it:'Qual è la frequenza corretta delle compressioni toraciche durante la RCP?', en:'What is the correct rate of chest compressions during CPR?' },
+      opts:{ it:['30-40 al minuto, piano e con delicatezza per non fare ulteriori danni','100-120 al minuto, forte e veloce, profondità 5-6 cm','Una compressione ogni 5 secondi, aspettando che il cuore risponda','La RCP può essere fatta solo da personale sanitario formato'],
+             en:['30-40 per minute, gently and slowly to avoid further damage','100-120 per minute, hard and fast, depth 5-6 cm','One compression every 5 seconds, waiting for the heart to respond','CPR can only be performed by trained healthcare personnel'] },
+      correct:1, feedback:{ it:'Esatto! 100-120 compressioni al minuto, profonde 5-6 cm. Canta mentalmente "Stayin\' Alive" dei Bee Gees per tenere il ritmo. La RCP la può fare chiunque — ogni secondo conta.', en:'Correct! 100-120 compressions per minute, 5-6 cm deep. Mentally sing "Stayin\' Alive" by the Bee Gees to keep rhythm. Anyone can do CPR — every second counts.' }
+    },
+    { id:'Q4', scenario:false,
+      q:{ it:'Un collega cade da una scala e riferisce dolore alla schiena. Non riesce ad alzarsi. Cosa fai?', en:'A colleague falls from a ladder and reports back pain. They cannot stand up. What do you do?' },
+      opts:{ it:['Lo aiuto ad alzarsi lentamente per portarlo a sedersi','Lo sposto su un materasso in magazzino in attesa dei soccorsi','NON lo sposto — chiamo il 112 e aspetto i soccorsi lasciandolo nella posizione in cui è','Lo faccio alzare e camminare lentamente per capire se è grave'],
+             en:['I help them stand slowly to sit them down','I move them onto a mattress in the warehouse while waiting for help','I do NOT move them — I call 112 and wait, leaving them in the position they are in','I help them stand and walk slowly to assess severity'] },
+      correct:2, feedback:{ it:'Corretto. Con dolore alla schiena dopo una caduta non si sposta mai la vittima — il rischio è una lesione spinale. Si chiama il 112 e si attende, mantenendo la persona calma e ferma.', en:'Correct. With back pain after a fall the victim is never moved — the risk is a spinal injury. Call 112 and wait, keeping the person calm and still.' }
+    }
+  ]
+},
+
+// ─── CORSO 6: RISCHIO ELETTRICO ───────────────────────────────────────────────
+{
+  id:'C06', icon:'⚡', color:'#7C3AED', required:true, roles:['maintenance','warehouse'],
+  title:{ it:'Rischio Elettrico in Magazzino', en:'Electrical Risk in the Warehouse' },
+  desc: { it:'Pericoli dell\'elettricità, comportamenti sicuri e soccorso in caso di incidente', en:'Electrical hazards, safe behaviours, and rescue in case of an incident' },
+  duration:'15 min',
+  lessons:[
+    { id:'L1', num:1,
+      title:{ it:'I pericoli invisibili dell\'elettricità', en:'The invisible dangers of electricity' },
+      content:{ it:'L\'elettricità è uno dei rischi meno visibili ma più pericolosi in magazzino. La corrente non avvisa prima di colpire. Anche 50 mA di corrente alternata (meno di una lampadina da 10W) possono causare arresto cardiaco. I rischi principali in magazzino sono: cavi di alimentazione sul pavimento che i carrelli possono danneggiare; prese elettriche vicino ad aree umide o con perdite d\'acqua; apparecchiature con cavo rovinato o isolamento esposto; pannelli elettrici aperti o non chiusi a chiave; sovraccarichi su ciabatte elettriche. Gli incendi di origine elettrica rappresentano oltre il 20% degli incendi industriali in Italia. Un cavo danneggiato che passa inosservato può diventare la causa di un incendio notturno.',
+                en:'Electricity is one of the least visible but most dangerous hazards in a warehouse. The current does not warn before striking. Even 50 mA of alternating current (less than a 10W bulb) can cause cardiac arrest. Main risks in the warehouse are: power cables on the floor that forklifts can damage; electrical sockets near wet or water-leaking areas; equipment with damaged cables or exposed insulation; open or unlocked electrical panels; overloaded extension leads. Fires of electrical origin represent over 20% of industrial fires in Italy. An unnoticed damaged cable can become the cause of an overnight fire.' },
+      points:{ it:['50 mA di corrente alternata possono causare arresto cardiaco: non sottovalutare mai','Cavi sul pavimento + transito carrelli = rischio di danneggiamento e corto circuito','Umidità vicino a prese o cavi: rischio immediato, segnalare subito','Pannello elettrico aperto: non toccare, avvisare il responsabile immediatamente','Incendi elettrici: oltre il 20% di tutti gli incendi industriali in Italia'],
+               en:['50 mA of AC current can cause cardiac arrest: never underestimate','Floor cables + forklift traffic = risk of damage and short circuit','Moisture near sockets or cables: immediate risk, report immediately','Open electrical panel: do not touch, notify supervisor immediately','Electrical fires: over 20% of all industrial fires in Italy'] }
+    },
+    { id:'L2', num:2,
+      title:{ it:'Comportamenti sicuri: sì e no', en:'Safe behaviours: dos and don\'ts' },
+      content:{ it:'Mai fare: non toccare mai apparecchiature elettriche con mani bagnate o sudate — l\'acqua abbassa drasticamente la resistenza della pelle; non tirare i cavi dalla spina prendendoli per il cavo — prendere sempre la spina stessa; non coprire cavi con tappeti, cartoni o pallet — generano calore e possono innescare un incendio; non collegare più ciabatte in serie o sovraccaricarle; non aprire mai quadri o pannelli elettrici senza essere tecnico autorizzato; mai usare acqua su un incendio elettrico — usa solo CO₂ o polvere. Fare sempre: segnalare immediatamente qualsiasi cavo con isolamento danneggiato o esposto; se un\'apparecchiatura emette scintille, odore di bruciato o suoni anomali, stacca la corrente e avvisa; prima di qualsiasi intervento su un\'apparecchiatura, stacca la spina; in caso di dubbio, non toccare e avvisa il responsabile o la manutenzione.',
+                en:'Never: never touch electrical equipment with wet or sweaty hands — water drastically lowers skin resistance; never pull cables by the cord — always grip the plug itself; never cover cables with mats, cardboard, or pallets — they generate heat and can start a fire; never daisy-chain extension leads or overload them; never open switchboards or electrical panels without being an authorised technician; never use water on an electrical fire — use only CO₂ or powder. Always: immediately report any cable with damaged or exposed insulation; if equipment emits sparks, burning smell, or unusual sounds, cut power and report; before any work on equipment, unplug it; if in doubt, do not touch and notify the supervisor or maintenance.' },
+      points:{ it:['Mani bagnate + elettricità = rischio di morte: asciugarsi sempre prima','Cavo danneggiato: segnalare subito al responsabile, non usarlo mai','Scintille o odore di bruciato: stacca la corrente immediatamente e avvisa','Incendio elettrico: SOLO CO₂ o polvere — MAI acqua','Quadro elettrico: solo tecnico autorizzato, nessuna eccezione'],
+               en:['Wet hands + electricity = death risk: always dry hands first','Damaged cable: report to supervisor immediately, never use it','Sparks or burning smell: cut power immediately and report','Electrical fire: ONLY CO₂ or powder — NEVER water','Electrical panel: authorised technician only, no exceptions'] }
+    },
+    { id:'L3', num:3,
+      title:{ it:'Soccorso in caso di incidente elettrico', en:'Rescue in case of an electrical incident' },
+      content:{ it:'Un incidente elettrico richiede un approccio completamente diverso dagli altri infortuni. La regola assoluta è: MAI toccare direttamente una persona ancora in contatto con la corrente — rimarrai folgorato anche tu e diventerai la seconda vittima. La sequenza corretta è: primo, non toccare la vittima finché la corrente non è interrotta; secondo, interrompi la corrente staccando il cavo dalla presa, o scattando il salvavita o l\'interruttore generale del reparto; solo allora avvicinati e chiama il 112 immediatamente. Se la vittima non risponde e non respira, inizia la RCP — le scariche elettriche causano frequentemente arresto cardiaco. Usa il DAE appena disponibile. Anche chi sembra stare bene dopo una scarica deve essere visitato da un medico: i danni interni (cardiaci, muscolari, neurologici) possono manifestarsi ore dopo.',
+                en:'An electrical incident requires a completely different approach from other injuries. The absolute rule is: NEVER directly touch a person still in contact with electricity — you will be electrocuted too and become a second victim. The correct sequence is: first, do not touch the victim until the current is interrupted; second, cut the power by unplugging the cable, or tripping the circuit breaker or the department main switch; only then approach and call 112 immediately. If the victim is unresponsive and not breathing, start CPR — electric shocks frequently cause cardiac arrest. Use the AED as soon as available. Even those who seem fine after a shock must be seen by a doctor: internal damage (cardiac, muscular, neurological) can appear hours later.' },
+      points:{ it:['MAI toccare la vittima mentre è ancora sotto tensione: diventi la seconda vittima','Prima interrompi la corrente (presa o interruttore generale), POI avvicinati','Folgorazione → spesso causa arresto cardiaco → RCP + DAE subito','Chiama il 112 immediatamente dopo aver interrotto la corrente','Anche chi sembra illeso va visitato da un medico: danni interni non visibili'],
+               en:['NEVER touch victim while still under voltage: you become a second victim','First cut power (socket or main switch), THEN approach','Electrocution → often causes cardiac arrest → CPR + AED immediately','Call 112 immediately after cutting the power','Even those who seem unharmed must see a doctor: invisible internal damage'] }
+    }
+  ],
+  quiz:[
+    { id:'Q1', scenario:'⚡',
+      q:{ it:'Vedi un collega che ha ricevuto una scarica ed è a terra, ancora in contatto con il cavo. Qual è la tua prima azione?', en:'You see a colleague who has received a shock and is on the floor, still in contact with the cable. What is your first action?' },
+      opts:{ it:['Lo afferro per le spalle e lo trascino lontano dal cavo subito','Prima stacco la corrente dalla presa o dall\'interruttore, poi mi avvicino e chiamo il 112','Verso dell\'acqua sul cavo per ridurre la tensione prima di toccarlo','Attendo che la corrente si interrompa da sola prima di avvicinarmi'],
+             en:['I grab them by the shoulders and drag them away from the cable immediately','First I cut power from the socket or breaker, then I approach and call 112','I pour water on the cable to reduce voltage before touching them','I wait for the power to cut itself off before approaching'] },
+      correct:1, feedback:{ it:'Corretto. Toccare direttamente una persona sotto tensione causa una seconda vittima. La priorità è interrompere la corrente dall\'interruttore o dalla presa — poi avvicinarsi e chiamare il 112.', en:'Correct. Directly touching a person under voltage creates a second victim. The priority is cutting power from the breaker or socket — then approach and call 112.' }
+    },
+    { id:'Q2', scenario:false,
+      q:{ it:'Noti un cavo di alimentazione con l\'isolamento rotto e i fili interni visibili. Cosa fai?', en:'You notice a power cable with broken insulation and visible internal wires. What do you do?' },
+      opts:{ it:['Lo copro con nastro isolante e continuo ad usarlo','Lo segnalo immediatamente al responsabile e non lo uso','Lo uso con guanti di gomma: la protezione è sufficiente','Lo sposto in un angolo così almeno non ci inciampa nessuno'],
+             en:['I cover it with insulating tape and continue using it','I report it immediately to my supervisor and do not use it','I use it with rubber gloves: the protection is sufficient','I move it to a corner so at least no one trips on it'] },
+      correct:1, feedback:{ it:'Corretto. Un cavo danneggiato non si ripara con nastro isolante e non si usa mai, nemmeno con guanti. Va segnalato e sostituito da personale tecnico qualificato. È una questione di sicurezza, non di praticità.', en:'Correct. A damaged cable is never repaired with tape and never used, even with gloves. It must be reported and replaced by qualified technical personnel. It is a safety issue, not a practical one.' }
+    },
+    { id:'Q3', scenario:'🔥',
+      q:{ it:'Scoppia un incendio in un quadro elettrico. Quale estintore usi?', en:'A fire breaks out in an electrical panel. Which extinguisher do you use?' },
+      opts:{ it:['Acqua: raffredda velocemente le fiamme','CO₂ (anidride carbonica) o polvere: non conducono la corrente','Schiuma: isola le fiamme dall\'ossigeno','Qualsiasi estintore va bene in caso di emergenza grave'],
+             en:['Water: cools flames quickly','CO₂ (carbon dioxide) or powder: they do not conduct electricity','Foam: isolates flames from oxygen','Any extinguisher works in case of a serious emergency'] },
+      correct:1, feedback:{ it:'Esatto. Su incendi elettrici si usa SOLO CO₂ (etichetta nera) o polvere (etichetta blu). L\'acqua conduce la corrente e può causare folgorazione a chi spegne l\'incendio. La schiuma contiene acqua — stessa regola.', en:'Correct. On electrical fires use ONLY CO₂ (black label) or powder (blue label). Water conducts electricity and can electrocute the person fighting the fire. Foam contains water — same rule.' }
+    }
+  ]
+}
+
+]; // end COURSES
+
+// ╔══════════════════════════════════════════╗
+// ║  STATE                                   ║
+// ╚══════════════════════════════════════════╝
+let S = {
+  lang: 'it',
+  employee: null,
+  pendingEmp: null,      // employee tapped but not yet confirmed
+  npInput: '',           // current numpad digits
+  npAttempts: 0,         // failed attempts for pendingEmp
+  npLockUntil: 0,        // timestamp when lockout ends
+  course: null,
+  lesson: null,
+  inQuiz: false,
+  qIndex: 0,
+  qAnswered: false,
+  qAnswers: [],
+  adminIn: false,
+};
+
+// ╔══════════════════════════════════════════╗
+// ║  TRANSLATIONS                            ║
+// ╚══════════════════════════════════════════╝
+const T = {
+  it:{
+    welcome:'Ciao! Chi sei?', wsub:'Seleziona il tuo nome per accedere ai corsi',
+    np_title:'Inserisci la tua matricola', np_sub:'Matricola (numero dipendente)',
+    np_confirm:'Conferma ed entra', np_back:'← Scegli un altro nome',
+    np_wrong:'Numero matricola errato. Riprova.', np_lock:'Troppi tentativi. Attendi {s} secondi.',
+    np_ok:'Benvenuto/a!', np_help:'Non ricordi la matricola? Chiedi al responsabile HSE.',
+    search:'Cerca il tuo nome...', admin:'Accesso Admin',
+    mycourses:'I miei corsi', mandatory:'CORSI OBBLIGATORI', optional:'CORSI FACOLTATIVI',
+    ovprog:'Completamento obbligatori', lessons:'lezioni',
+    start:'Inizia il corso', cont:'Continua', review:'Ripassa',
+    lesson:'Lezione', of:'di', keypts:'PUNTI CHIAVE',
+    nextlesson:'Lezione successiva →', startquiz:'Inizia il quiz finale →',
+    quiz:'Quiz', question:'Domanda', confirm:'Conferma risposta',
+    nextq:'Prossima domanda →', finishq:'Termina quiz e vedi risultato',
+    passed:'SUPERATO ✓', failed:'NON SUPERATO ✗', yourscore:'Il tuo punteggio',
+    retry:'📚 Ripassa le lezioni e riprova', backcourses:'← Torna ai corsi',
+    req:'Obbligatorio', opt:'Facoltativo', done:'✓ Completato', prog:'In corso', newb:'Nuovo',
+    admintitle:'Dashboard Admin HSE', apw:'Password admin:', alogin:'Accedi',
+    exportcsv:'📊 Esporta report in CSV (per Excel)', matrixtitle:'Matrice di completamento',
+    passmsg:'Ottimo lavoro! Hai superato questo corso con successo.',
+    failmsg:'Hai bisogno di ripassare le lezioni prima di riprovare il quiz.',
+    logout:'Cambia utente', score:'Punteggio', completedon:'Completato il',
+    nocoures:'Nessun corso assegnato per questo ruolo.',
+    legend_ok:'Superato', legend_pr:'In corso', legend_no:'Non iniziato', legend_na:'N/A',
+    selectans:'Seleziona una risposta per continuare',
+    correct:'✓ Risposta corretta!', wrong:'✗ Risposta sbagliata',
+    minscore:'Punteggio minimo per superare', attempts:'Tentativo/i',
+    exitdash:'Esci dalla dashboard',
+  },
+  en:{
+    welcome:'Hello! Who are you?', wsub:'Select your name to access your courses',
+    np_title:'Enter your employee number', np_sub:'Employee number (matricola)',
+    np_confirm:'Confirm and enter', np_back:'← Choose a different name',
+    np_wrong:'Wrong employee number. Try again.', np_lock:'Too many attempts. Wait {s} seconds.',
+    np_ok:'Welcome!', np_help:"Can't remember your number? Ask the HSE manager.",
+    search:'Search your name...', admin:'Admin Access',
+    mycourses:'My courses', mandatory:'MANDATORY COURSES', optional:'OPTIONAL COURSES',
+    ovprog:'Mandatory completion', lessons:'lessons',
+    start:'Start course', cont:'Continue', review:'Review',
+    lesson:'Lesson', of:'of', keypts:'KEY POINTS',
+    nextlesson:'Next lesson →', startquiz:'Start final quiz →',
+    quiz:'Quiz', question:'Question', confirm:'Submit answer',
+    nextq:'Next question →', finishq:'Finish quiz and see result',
+    passed:'PASSED ✓', failed:'NOT PASSED ✗', yourscore:'Your score',
+    retry:'📚 Review lessons and retry', backcourses:'← Back to courses',
+    req:'Mandatory', opt:'Optional', done:'✓ Completed', prog:'In progress', newb:'New',
+    admintitle:'HSE Admin Dashboard', apw:'Admin password:', alogin:'Login',
+    exportcsv:'📊 Export report to CSV (for Excel)', matrixtitle:'Completion matrix',
+    passmsg:'Great work! You have successfully passed this course.',
+    failmsg:'You need to review the lessons before retrying the quiz.',
+    logout:'Change user', score:'Score', completedon:'Completed on',
+    nocoures:'No courses assigned for this role.',
+    legend_ok:'Passed', legend_pr:'In progress', legend_no:'Not started', legend_na:'N/A',
+    selectans:'Select an answer to continue',
+    correct:'✓ Correct answer!', wrong:'✗ Wrong answer',
+    minscore:'Minimum passing score', attempts:'Attempt(s)',
+    exitdash:'Exit dashboard',
+  }
+};
+const t = k => T[S.lang][k] || k;
+
+// ╔══════════════════════════════════════════╗
+// ║  STORAGE (localStorage)                  ║
+// ╚══════════════════════════════════════════╝
+const SK = 'ikea_hse_v1';
+const load  = () => { try { return JSON.parse(localStorage.getItem(SK)) || {}; } catch { return {}; } };
+const save  = d => localStorage.setItem(SK, JSON.stringify(d));
+const getEP = id => load()[id] || {};
+const getCP = (eid, cid) => getEP(eid)[cid] || {};
+const setCP = (eid, cid, data) => {
+  const all = load();
+  if (!all[eid]) all[eid] = {};
+  all[eid][cid] = { ...all[eid][cid], ...data };
+  save(all);
+};
+
+// ╔══════════════════════════════════════════╗
+// ║  UTILITIES                               ║
+// ╚══════════════════════════════════════════╝
+const initials = n => n.split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase();
+const fmtDate  = ts => ts ? new Date(ts).toLocaleDateString(S.lang==='it'?'it-IT':'en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '';
+const empCourses = emp => COURSES.filter(c => c.roles.includes('all') || c.roles.includes(emp.role));
+const courseStatus = (eid, cid) => {
+  const p = getCP(eid, cid);
+  if (p.passed) return 'done';
+  if (p.lessonsCompleted && p.lessonsCompleted.length > 0) return 'prog';
+  return 'new';
+};
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => el.classList.add('hidden'), 2600);
+}
+
+function toggleLang() {
+  S.lang = S.lang === 'it' ? 'en' : 'it';
+  document.getElementById('lang-btn').textContent = S.lang === 'it' ? 'EN' : 'IT';
+  document.getElementById('back-btn').textContent = S.lang === 'it' ? '← Indietro' : '← Back';
+  render();
+}
+
+function goBack() {
+  if (S.pendingEmp) { npBack(); }
+  else if (S.inQuiz)   { S.inQuiz = false; S.lesson = null; render(); }
+  else if (S.lesson)  { S.lesson = null; render(); }
+  else if (S.course)  { S.course = null; render(); }
+  else if (S.adminIn) { S.adminIn = false; S.employee = null; render(); }
+  else { S.employee = null; render(); }
+}
+
+// ╔══════════════════════════════════════════╗
+// ║  MAIN RENDER DISPATCHER                  ║
+// ╚══════════════════════════════════════════╝
+function render() {
+  const content   = document.getElementById('content');
+  const backBtn   = document.getElementById('back-btn');
+  const hdrTitle  = document.getElementById('hdr-title');
+  const show = (el) => { el.classList.remove('hidden'); };
+  const hide = (el) => { el.classList.add('hidden'); };
+
+  if (!S.employee && !S.adminIn) {
+    hide(backBtn); hdrTitle.textContent = 'HSE Training';
+    content.innerHTML = renderWelcome(); return;
+  }
+  if (S.inQuiz) {
+    show(backBtn); hdrTitle.textContent = t('quiz');
+    content.innerHTML = renderQuiz(); return;
+  }
+  if (S.lesson) {
+    show(backBtn); hdrTitle.textContent = S.course.title[S.lang];
+    content.innerHTML = renderLesson(); return;
+  }
+  if (S.course) {
+    show(backBtn); hdrTitle.textContent = t('mycourses');
+    content.innerHTML = renderCourseDetail(); return;
+  }
+  if (S.adminIn) {
+    show(backBtn); hdrTitle.textContent = t('admintitle');
+    content.innerHTML = renderAdmin(); return;
+  }
+  show(backBtn); hdrTitle.textContent = t('mycourses');
+  content.innerHTML = renderDashboard();
+}
+
+// ╔══════════════════════════════════════════╗
+// ║  SCREEN: WELCOME                         ║
+// ╚══════════════════════════════════════════╝
+function renderWelcome() {
+  const empHTML = EMPLOYEES.map(e => `
+    <button class="empbtn" onclick="selectEmployee('${e.id}')">
+      <div class="av" style="width:40px;height:40px;font-size:13px;">${initials(e.name)}</div>
+      <div><div style="font-weight:600;">${e.name}</div><div style="font-size:12px;color:var(--text-muted);">${e.dept}</div></div>
+    </button>`).join('');
+  return `
+  <div class="screen">
+    <div style="text-align:center;margin:16px 0 26px;">
+      <div style="font-size:50px;margin-bottom:10px;">🏭</div>
+      <h1 style="font-size:22px;font-weight:800;color:var(--blue);">${t('welcome')}</h1>
+      <p style="color:var(--text-muted);font-size:14px;margin-top:6px;">${t('wsub')}</p>
+    </div>
+    <input type="text" id="emp-search" placeholder="${t('search')}" oninput="filterEmp(this.value)">
+    <div id="emp-list">${empHTML}</div>
+    <div style="text-align:center;margin-top:18px;">
+      <button onclick="showAdminLogin()" style="background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;text-decoration:underline;padding:8px;">
+        🔒 ${t('admin')}
+      </button>
+    </div>
+  </div>`;
+}
+
+function filterEmp(q) {
+  const filtered = EMPLOYEES.filter(e => e.name.toLowerCase().includes(q.toLowerCase()) || e.dept.toLowerCase().includes(q.toLowerCase()));
+  document.getElementById('emp-list').innerHTML = filtered.map(e => `
+    <button class="empbtn" onclick="selectEmployee('${e.id}')">
+      <div class="av" style="width:40px;height:40px;font-size:13px;">${initials(e.name)}</div>
+      <div><div style="font-weight:600;">${e.name}</div><div style="font-size:12px;color:var(--text-muted);">${e.dept}</div></div>
+    </button>`).join('');
+}
+
+function selectEmployee(id) {
+  const emp = EMPLOYEES.find(e => e.id === id);
+  if (!emp) return;
+  // Check if this employee is locked out
+  if (S.npLockUntil > Date.now() && S.pendingEmp && S.pendingEmp.id === emp.id) {
+    const secs = Math.ceil((S.npLockUntil - Date.now()) / 1000);
+    toast(t('np_lock').replace('{s}', secs));
+    return;
+  }
+  S.pendingEmp = emp;
+  S.npInput = '';
+  if (!S.pendingEmp || S.pendingEmp.id !== (S.pendingEmp && S.pendingEmp.id)) {
+    S.npAttempts = 0;
+    S.npLockUntil = 0;
+  }
+  renderNumpad();
+}
+
+function renderNumpad() {
+  const emp = S.pendingEmp;
+  if (!emp) { render(); return; }
+  const locked = S.npLockUntil > Date.now();
+  const secsLeft = locked ? Math.ceil((S.npLockUntil - Date.now()) / 1000) : 0;
+  const len = emp.matricola.length;
+  const filled = S.npInput.length;
+  const dots = Array.from({length: len}, (_, i) =>
+    `<div class="np-dot ${i < filled ? 'filled' : ''}"></div>`).join('');
+
+  document.getElementById('hdr-title').textContent = t('np_sub');
+  document.getElementById('back-btn').classList.remove('hidden');
+
+  const hint = locked
+    ? `<span class="np-err np-lock">${t('np_lock').replace('{s}', secsLeft)}</span>`
+    : S.npAttempts > 0
+      ? `<span class="np-err">${t('np_wrong')}</span>`
+      : t('np_help');
+
+  document.getElementById('content').innerHTML = `
+  <div class="screen np-wrap">
+    <p style="font-size:16px;font-weight:700;margin-bottom:16px;text-align:center;">${t('np_title')}</p>
+    <div class="np-who">
+      <div class="np-av">${initials(emp.name)}</div>
+      <div><div class="np-name">${emp.name}</div><div class="np-dept">${emp.dept}</div></div>
+    </div>
+    <div class="np-disp">${dots}</div>
+    <div class="np-hint">${hint}</div>
+    <div class="np-grid">
+      ${[1,2,3,4,5,6,7,8,9].map(n =>
+        `<button class="np-key" onclick="npPress('${n}')" ${locked?'disabled':''}>
+          <span>${n}</span>
+          <span style="display:block;font-size:10px;font-weight:400;color:var(--text-muted);letter-spacing:.05em;margin-top:2px;">${['','ABC','DEF','GHI','JKL','MNO','PQRS','TUV','WXYZ'][n]}</span>
+        </button>`).join('')}
+      <button class="np-key empty" disabled></button>
+      <button class="np-key" onclick="npPress('0')" ${locked?'disabled':''}>0</button>
+      <button class="np-key del" onclick="npDel()" ${locked?'disabled':''}>⌫</button>
+    </div>
+    <button class="np-confirm" onclick="npConfirm()" ${filled < len || locked ? 'disabled' : ''}>${t('np_confirm')}</button>
+    <button class="np-back" onclick="npBack()">${t('np_back')}</button>
+  </div>`;
+
+  // auto-refresh while locked so countdown updates
+  if (locked) {
+    clearTimeout(window._npTimer);
+    window._npTimer = setTimeout(() => { if(S.pendingEmp) renderNumpad(); }, 1000);
+  }
+}
+
+function npPress(digit) {
+  if (S.npLockUntil > Date.now()) return;
+  const maxLen = S.pendingEmp ? S.pendingEmp.matricola.length : 6;
+  if (S.npInput.length >= maxLen) return;
+  S.npInput += digit;
+  renderNumpad();
+}
+
+function npDel() {
+  if (S.npLockUntil > Date.now()) return;
+  S.npInput = S.npInput.slice(0, -1);
+  renderNumpad();
+}
+
+function npConfirm() {
+  const emp = S.pendingEmp;
+  if (!emp) return;
+  if (S.npInput === emp.matricola) {
+    // SUCCESS
+    clearTimeout(window._npTimer);
+    S.employee = emp;
+    S.pendingEmp = null;
+    S.npInput = '';
+    S.npAttempts = 0;
+    S.npLockUntil = 0;
+    S.course = null; S.lesson = null; S.inQuiz = false;
+    toast(t('np_ok') + ' ' + emp.name.split(' ')[0] + '!');
+    render();
+  } else {
+    // WRONG
+    S.npAttempts++;
+    S.npInput = '';
+    if (S.npAttempts >= 3) {
+      S.npLockUntil = Date.now() + 60000; // 60-second lockout
+      S.npAttempts = 0;
+    }
+    renderNumpad();
+  }
+}
+
+function npBack() {
+  clearTimeout(window._npTimer);
+  S.pendingEmp = null; S.npInput = ''; S.npAttempts = 0; S.npLockUntil = 0;
+  render();
+}
+
+// ╔══════════════════════════════════════════╗
+// ║  SCREEN: DASHBOARD                       ║
+// ╚══════════════════════════════════════════╝
+function renderDashboard() {
+  const emp = S.employee;
+  const courses = empCourses(emp);
+  const mandatory = courses.filter(c => c.required);
+  const optional  = courses.filter(c => !c.required);
+  const doneMand  = mandatory.filter(c => courseStatus(emp.id, c.id) === 'done').length;
+  const pct = mandatory.length ? Math.round(doneMand / mandatory.length * 100) : 0;
+
+  return `
+  <div class="screen">
+    <div style="background:var(--blue);border-radius:14px;padding:17px;margin-bottom:18px;color:white;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div class="av" style="width:46px;height:46px;font-size:15px;background:rgba(255,255,255,0.2);">${initials(emp.name)}</div>
+        <div style="flex:1;">
+          <div style="font-size:16px;font-weight:700;">${emp.name}</div>
+          <div style="font-size:12px;opacity:0.75;">${emp.dept}</div>
+        </div>
+        <button onclick="logoutEmp()" style="background:rgba(255,255,255,0.18);border:none;color:white;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">${t('logout')}</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;opacity:0.85;margin-bottom:6px;">
+        <span>${t('ovprog')}</span><span>${doneMand} / ${mandatory.length}</span>
+      </div>
+      <div class="pbar" style="background:rgba(255,255,255,0.25);"><div class="pfill" style="width:${pct}%;background:var(--yellow);"></div></div>
+    </div>
+
+    ${mandatory.length ? `<div class="slabel">${t('mandatory')}</div>` : ''}
+    ${mandatory.map(c => courseCard(c)).join('')}
+    ${optional.length  ? `<div class="slabel" style="margin-top:6px;">${t('optional')}</div>` : ''}
+    ${optional.map(c  => courseCard(c)).join('')}
+    ${!courses.length  ? `<p style="color:var(--text-muted);text-align:center;margin-top:36px;">${t('nocoures')}</p>` : ''}
+  </div>`;
+}
+
+function courseCard(c) {
+  const emp = S.employee;
+  const st  = courseStatus(emp.id, c.id);
+  const p   = getCP(emp.id, c.id);
+  const done = (p.lessonsCompleted || []).length;
+  const pct  = Math.round(done / c.lessons.length * 100);
+  const badgeMap = { done:`<span class="badge b-done">${t('done')}</span>`, prog:`<span class="badge b-prog">${t('prog')}</span>`, new: c.required ? `<span class="badge b-req">${t('req')}</span>` : `<span class="badge b-opt">${t('opt')}</span>` };
+
+  return `
+  <div class="card" onclick="selectCourse('${c.id}')">
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      <div class="ic" style="background:${c.color}22;">${c.icon}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px;line-height:1.3;">${c.title[S.lang]}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:7px;">${c.desc[S.lang]}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
+          ${badgeMap[st]}
+          <span style="font-size:11px;color:var(--text-muted);">${c.lessons.length} ${t('lessons')} · ${c.duration}</span>
+        </div>
+        ${st !== 'new' ? `<div class="pbar"><div class="pfill" style="width:${st==='done'?100:pct}%;background:${st==='done'?'var(--green)':c.color};"></div></div>` : ''}
+        ${st === 'done' && p.quizScore !== undefined ? `<div style="font-size:11px;color:var(--green);margin-top:5px;">${t('score')}: ${p.quizScore}% — ${t('completedon')} ${fmtDate(p.completedAt)}</div>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function selectCourse(id) {
+  S.course = COURSES.find(c => c.id === id);
+  S.lesson = null; S.inQuiz = false;
+  render();
+}
+function logoutEmp() { S.employee = null; S.course = null; S.lesson = null; S.inQuiz = false; render(); }
+
+// ╔══════════════════════════════════════════╗
+// ║  SCREEN: COURSE DETAIL                   ║
+// ╚══════════════════════════════════════════╝
+function renderCourseDetail() {
+  const c = S.course; const emp = S.employee;
+  const p = getCP(emp.id, c.id);
+  const completed = p.lessonsCompleted || [];
+  const allLessonsDone = completed.length >= c.lessons.length;
+  const st = courseStatus(emp.id, c.id);
+
+  return `
+  <div class="screen">
+    <div class="lhdr" style="background:${c.color};">
+      <div class="lemoji">${c.icon}</div>
+      <div class="ltitle">${c.title[S.lang]}</div>
+      <div class="lsub">${c.lessons.length} ${t('lessons')} · ${c.duration}</div>
+    </div>
+
+    <div class="slabel">LEZIONI / LESSONS</div>
+    ${c.lessons.map((l, i) => {
+      const done = completed.includes(l.id);
+      return `
+      <div class="card" onclick="selectLesson('${l.id}')" style="${done ? 'border-color:var(--green);' : ''}">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:50%;flex-shrink:0;background:${done?'var(--green)':'var(--gray-light)'};color:${done?'white':'var(--gray)'};display:flex;align-items:center;justify-content:center;font-size:${done?'17px':'14px'};font-weight:700;">
+            ${done ? '✓' : i+1}
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:500;line-height:1.35;">${l.title[S.lang]}</div>
+          </div>
+          <div style="color:#9CA3AF;font-size:20px;flex-shrink:0;">›</div>
+        </div>
+      </div>`;
+    }).join('')}
+
+    <div style="margin-top:6px;">
+      ${allLessonsDone && st !== 'done' ? `<button class="btn btn-yellow" onclick="startQuiz()">📝 ${t('startquiz')}</button>`
+        : st === 'done' ? `<button class="btn btn-outline" onclick="startQuiz()">📝 ${t('review')}</button>`
+        : `<button class="btn btn-primary" onclick="selectLesson('${c.lessons[completed.length < c.lessons.length ? completed.length : 0].id}')">▶ ${completed.length > 0 ? t('cont') : t('start')}</button>`
+      }
+    </div>
+  </div>`;
+}
+
+function selectLesson(id) {
+  S.lesson = S.course.lessons.find(l => l.id === id);
+  S.inQuiz = false;
+  render();
+}
+
+// ╔══════════════════════════════════════════╗
+// ║  SCREEN: LESSON                          ║
+// ╚══════════════════════════════════════════╝
+function renderLesson() {
+  const l = S.lesson; const c = S.course; const emp = S.employee;
+  const p = getCP(emp.id, c.id);
+  const completed = p.lessonsCompleted || [];
+  const isLast = c.lessons[c.lessons.length-1].id === l.id;
+  const willFinishAll = new Set([...completed, l.id]).size >= c.lessons.length;
+
+  return `
+  <div class="screen">
+    <div class="lhdr" style="background:${c.color};padding:16px;">
+      <div style="font-size:11px;opacity:0.7;margin-bottom:4px;">${t('lesson')} ${l.num} ${t('of')} ${c.lessons.length}</div>
+      <div class="ltitle" style="font-size:17px;">${l.title[S.lang]}</div>
+    </div>
+
+    <p style="font-size:15px;line-height:1.75;color:#374151;margin-bottom:18px;">${l.content[S.lang]}</p>
+
+    <div class="card nc" style="background:#F8FAFC;border-color:#E2E8F0;">
+      <div class="slabel">${t('keypts')}</div>
+      ${l.points[S.lang].map(pt => `
+        <div class="kp"><div class="kdot"></div><span style="font-size:14px;line-height:1.65;">${pt}</span></div>
+      `).join('')}
+    </div>
+
+    <button class="btn btn-primary" style="margin-top:16px;" onclick="completeLesson('${l.id}')">
+      ${isLast && willFinishAll ? `✅ ${t('nextlesson').replace('→','')}→ ${t('startquiz')}` : t('nextlesson')}
+    </button>
+  </div>`;
+}
+
+function completeLesson(id) {
+  const emp = S.employee; const c = S.course;
+  const p = getCP(emp.id, c.id);
+  const completed = new Set(p.lessonsCompleted || []);
+  completed.add(id);
+  setCP(emp.id, c.id, { lessonsCompleted: [...completed] });
+
+  if ([...completed].length >= c.lessons.length) {
+    startQuiz();
+  } else {
+    const idx = c.lessons.findIndex(l => l.id === id);
+    S.lesson = c.lessons[idx+1] || c.lessons[0];
+    render();
+  }
+}
+
+// ╔══════════════════════════════════════════╗
+// ║  SCREEN: QUIZ                            ║
+// ╚══════════════════════════════════════════╝
+function startQuiz() {
+  S.inQuiz = true; S.lesson = null;
+  S.qIndex = 0; S.qAnswered = false; S.qAnswers = [];
+  render();
+}
+
+function renderQuiz() {
+  if (S.qIndex >= S.course.quiz.length) return renderQuizResult();
+  const q   = S.course.quiz[S.qIndex];
+  const pct = Math.round((S.qIndex / S.course.quiz.length) * 100);
+  const ans = S.qAnswers[S.qIndex];
+
+  return `
+  <div class="screen">
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:6px;">
+        <span>${t('question')} ${S.qIndex+1} / ${S.course.quiz.length}</span><span>${pct}%</span>
+      </div>
+      <div class="pbar"><div class="pfill" style="width:${pct}%;background:var(--blue);"></div></div>
+    </div>
+
+    ${q.scenario ? `<div class="scebox">${q.scenario}</div>` : ''}
+    <div class="qqbox">${q.q[S.lang]}</div>
+
+    ${q.opts[S.lang].map((opt, i) => {
+      let cls = 'qopt';
+      if (S.qAnswered) {
+        cls += ' qdis';
+        if (i === q.correct) cls += ' qcorrect';
+        else if (i === ans && i !== q.correct) cls += ' qwrong';
+      }
+      return `<div class="${cls}" onclick="${S.qAnswered ? '' : `answerQ(${i})`}"><div class="oletter">${'ABCD'[i]}</div><span>${opt}</span></div>`;
+    }).join('')}
+
+    ${S.qAnswered ? `
+      <div class="fbbox ${ans === q.correct ? 'fbcorrect' : 'fbwrong'}">
+        <strong>${ans === q.correct ? t('correct') : t('wrong')}</strong><br>${q.feedback[S.lang]}
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px;" onclick="nextQ()">
+        ${S.qIndex+1 < S.course.quiz.length ? t('nextq') : t('finishq')}
+      </button>
+    ` : `<p style="text-align:center;color:#9CA3AF;font-size:13px;margin-top:10px;">${t('selectans')}</p>`}
+  </div>`;
+}
+
+function answerQ(i) {
+  if (S.qAnswered) return;
+  S.qAnswers[S.qIndex] = i;
+  S.qAnswered = true;
+  render();
+}
+function nextQ() {
+  S.qIndex++;
+  S.qAnswered = false;
+  render();
+}
+
+function renderQuizResult() {
+  const quiz = S.course.quiz;
+  const emp  = S.employee;
+  const c    = S.course;
+  const correct = S.qAnswers.filter((a,i) => a === quiz[i].correct).length;
+  const score   = Math.round(correct / quiz.length * 100);
+  const passed  = score >= CONFIG.passing_score;
+  const p       = getCP(emp.id, c.id);
+  const attempts= (p.attempts || 0) + 1;
+  const bestScore = Math.max(p.quizScore || 0, score);
+  setCP(emp.id, c.id, {
+    passed: passed || p.passed || false,
+    quizScore: bestScore,
+    attempts,
+    completedAt: (passed && !p.passed) ? Date.now() : (p.completedAt || null),
+    lastAttempt: Date.now(),
+  });
+
+  return `
+  <div class="screen" style="text-align:center;">
+    <div style="margin:18px 0 22px;">
+      <div class="rcircle ${passed ? 'rpass' : 'rfail'}">
+        <div class="rscore" style="color:${passed?'var(--green)':'var(--red)'};">${score}%</div>
+        <div class="rlabel" style="color:${passed?'var(--green)':'var(--red)'};">${passed ? t('passed') : t('failed')}</div>
+      </div>
+    </div>
+
+    <h2 style="font-size:19px;font-weight:700;margin-bottom:8px;">${c.title[S.lang]}</h2>
+    <p style="color:var(--text-muted);font-size:14px;">${correct} / ${quiz.length} ${S.lang==='it'?'risposte corrette':'correct answers'}</p>
+    <p style="color:#9CA3AF;font-size:12px;margin-top:4px;">${t('minscore')}: ${CONFIG.passing_score}% · ${attempts} ${t('attempts')}</p>
+
+    <div style="background:${passed?'var(--green-light)':'var(--red-light)'};border-radius:var(--r);padding:15px 16px;margin:18px 0;text-align:left;">
+      <p style="font-size:14px;color:${passed?'#0a5c45':'#7a1a1a'};line-height:1.65;">
+        ${passed ? '🎉 ' + t('passmsg') : '📚 ' + t('failmsg')}
+      </p>
+    </div>
+
+    ${!passed ? `<button class="btn btn-primary" onclick="retryFromLesson()">${t('retry')}</button>` : ''}
+    <button class="btn ${passed ? 'btn-primary' : 'btn-ghost'}" onclick="backToDashboard()" style="margin-top:${passed?'10px':'4px'};">${t('backcourses')}</button>
+  </div>`;
+}
+
+function retryFromLesson() {
+  S.inQuiz = false;
+  S.lesson = S.course.lessons[0];
+  render();
+}
+function backToDashboard() {
+  S.course = null; S.lesson = null; S.inQuiz = false; render();
+}
+
+// ╔══════════════════════════════════════════╗
+// ║  ADMIN                                   ║
+// ╚══════════════════════════════════════════╝
+function showAdminLogin() {
+  document.getElementById('content').innerHTML = `
+  <div class="screen" style="max-width:320px;margin:40px auto;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="font-size:38px;margin-bottom:8px;">🔒</div>
+      <h2 style="font-size:18px;font-weight:700;">${t('admintitle')}</h2>
+    </div>
+    <div class="adminform">
+      <label style="font-size:13px;color:var(--text-muted);margin-bottom:6px;display:block;">${t('apw')}</label>
+      <input type="password" id="apw" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()">
+      <button class="btn btn-primary" onclick="adminLogin()">${t('alogin')}</button>
+    </div>
+  </div>`;
+  document.getElementById('back-btn').classList.remove('hidden');
+  document.getElementById('hdr-title').textContent = t('admintitle');
+}
+
+function adminLogin() {
+  const pw = document.getElementById('apw') ? document.getElementById('apw').value : '';
+  if (pw === CONFIG.admin_password) { S.adminIn = true; render(); }
+  else toast(S.lang==='it' ? '❌ Password errata' : '❌ Wrong password');
+}
+
+function renderAdmin() {
+  const allProg = load();
+  const allEmps = EMPLOYEES;
+
+  let totalReq = 0, totalPassed = 0;
+  allEmps.forEach(emp => {
+    empCourses(emp).filter(c=>c.required).forEach(c => {
+      totalReq++;
+      if ((allProg[emp.id]||{})[c.id]?.passed) totalPassed++;
+    });
+  });
+  const passRate = totalReq > 0 ? Math.round(totalPassed/totalReq*100) : 0;
+  const missing  = totalReq - totalPassed;
+
+  // Matrix
+  const matrixRows = allEmps.map(emp => {
+    const ep = allProg[emp.id] || {};
+    const cells = COURSES.map(c => {
+      const applicable = c.roles.includes('all') || c.roles.includes(emp.role);
+      if (!applicable) return `<td><div class="mcell mc-no" style="margin:auto;color:#C4C9D4;">—</div></td>`;
+      const cp = ep[c.id] || {};
+      if (cp.passed) return `<td><div class="mcell mc-ok" style="margin:auto;" title="${t('legend_ok')} · ${cp.quizScore}%">✓</div></td>`;
+      if (cp.lessonsCompleted?.length > 0) return `<td><div class="mcell mc-prog" style="margin:auto;" title="${t('legend_pr')}">~</div></td>`;
+      return `<td><div class="mcell mc-no" style="margin:auto;font-size:11px;color:#9CA3AF;" title="${t('legend_no')}">○</div></td>`;
+    });
+    return `<tr><td style="font-size:13px;font-weight:500;white-space:nowrap;max-width:115px;overflow:hidden;text-overflow:ellipsis;">${emp.name}</td>${cells.join('')}</tr>`;
+  }).join('');
+
+  return `
+  <div class="screen">
+    <div class="g2" style="margin-bottom:16px;">
+      <div class="sbox"><div class="snum" style="color:var(--blue);">${allEmps.length}</div><div class="slbl">${S.lang==='it'?'Co-worker':'Co-workers'}</div></div>
+      <div class="sbox"><div class="snum" style="color:var(--green);">${passRate}%</div><div class="slbl">${S.lang==='it'?'Tasso superamento':'Pass rate'}</div></div>
+      <div class="sbox"><div class="snum">${totalPassed}</div><div class="slbl">${S.lang==='it'?'Corsi superati':'Courses passed'}</div></div>
+      <div class="sbox"><div class="snum" style="color:var(--red);">${missing}</div><div class="slbl">${S.lang==='it'?'Ancora mancanti':'Still missing'}</div></div>
+    </div>
+
+    <div class="slabel">${t('matrixtitle')}</div>
+    <div class="card nc" style="padding:12px;">
+      <div class="mwrap">
+        <table class="mtable">
+          <thead>
+            <tr>
+              <th style="text-align:left;min-width:100px;">${S.lang==='it'?'Co-worker':'Co-worker'}</th>
+              ${COURSES.map(c=>`<th style="min-width:38px;" title="${c.title[S.lang]}">${c.icon}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>${matrixRows}</tbody>
+        </table>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:11px;color:var(--text-muted);">
+        <span><span style="color:var(--green);">✓</span> ${t('legend_ok')}</span>
+        <span>~ ${t('legend_pr')}</span>
+        <span>○ ${t('legend_no')}</span>
+        <span>— ${t('legend_na')}</span>
+      </div>
+    </div>
+
+    <div class="slabel" style="margin-top:12px;">${S.lang==='it'?'DETTAGLIO CO-WORKER':'CO-WORKER DETAIL'}</div>
+    ${allEmps.map(emp => {
+      const ep = allProg[emp.id] || {};
+      const mandatory = empCourses(emp).filter(c=>c.required);
+      const passed = mandatory.filter(c => (ep[c.id]||{}).passed).length;
+      const pct = mandatory.length ? Math.round(passed/mandatory.length*100) : 0;
+      return `
+      <div class="card nc" style="margin-bottom:8px;padding:12px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+          <div class="av" style="width:32px;height:32px;font-size:11px;">${initials(emp.name)}</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;">${emp.name}</div>
+            <div style="font-size:12px;color:var(--text-muted);">${emp.dept}</div>
+          </div>
+          <span style="font-size:14px;font-weight:700;color:${passed===mandatory.length?'var(--green)':'var(--red)'};">${passed}/${mandatory.length}</span>
+        </div>
+        <div class="pbar"><div class="pfill" style="width:${pct}%;background:${passed===mandatory.length?'var(--green)':'var(--blue)'};"></div></div>
+        ${mandatory.map(c => {
+          const cp = ep[c.id] || {};
+          const st = cp.passed ? `<span style="color:var(--green);font-size:11px;">✓ ${cp.quizScore}% — ${fmtDate(cp.completedAt)}</span>` : cp.lessonsCompleted?.length ? `<span style="color:var(--amber);font-size:11px;">~ ${S.lang==='it'?'In corso':'In progress'}</span>` : `<span style="color:#9CA3AF;font-size:11px;">○ ${S.lang==='it'?'Non iniziato':'Not started'}</span>`;
+          return `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;"><span style="font-size:13px;">${c.icon}</span><span style="font-size:12px;color:var(--text-muted);flex:1;">${c.title[S.lang]}</span>${st}</div>`;
+        }).join('')}
+      </div>`;
+    }).join('')}
+
+    <button class="btn btn-outline" onclick="exportCSV()">${t('exportcsv')}</button>
+    <button class="btn btn-ghost" onclick="logoutAdmin()" style="margin-top:6px;">${t('exitdash')}</button>
+  </div>`;
+}
+
+function logoutAdmin() { S.adminIn = false; S.employee = null; render(); }
+
+// ╔══════════════════════════════════════════╗
+// ║  CSV EXPORT                              ║
+// ╚══════════════════════════════════════════╝
+function exportCSV() {
+  const allProg = load();
+  const rows = [
+    ['Co-worker','ID','Reparto','Ruolo','Corso','Stato','Punteggio migliore','Tentativi','Data completamento','Ultimo tentativo']
+  ];
+  EMPLOYEES.forEach(emp => {
+    COURSES.forEach(c => {
+      const applicable = c.roles.includes('all') || c.roles.includes(emp.role);
+      if (!applicable) return;
+      const cp = (allProg[emp.id]||{})[c.id] || {};
+      rows.push([
+        emp.name, emp.id, emp.dept, emp.role,
+        c.title.it,
+        cp.passed ? 'Superato' : cp.lessonsCompleted?.length ? 'In corso' : 'Non iniziato',
+        cp.quizScore !== undefined ? cp.quizScore + '%' : '—',
+        cp.attempts || 0,
+        cp.completedAt ? fmtDate(cp.completedAt) : '—',
+        cp.lastAttempt ? fmtDate(cp.lastAttempt) : '—',
+      ]);
+    });
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `IKEA_HSE_Report_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast(S.lang==='it' ? '✅ CSV scaricato!' : '✅ CSV downloaded!');
+}
+
+// ╔══════════════════════════════════════════╗
+// ║  INIT                                    ║
+// ╚══════════════════════════════════════════╝
+render();
+</script>
+</body>
+</html>
